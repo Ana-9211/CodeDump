@@ -1,4 +1,8 @@
 # Function to load data from a file
+def haha():
+    print('haha')
+
+
 def load_data(file_name):
     data1 = []
     with open(file_name, "r") as file:
