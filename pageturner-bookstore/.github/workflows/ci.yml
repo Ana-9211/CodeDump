@@ -1,0 +1,27 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+    env:
+      DATABASE_ADMIN_URL: postgres://postgres@127.0.0.1:5432/postgres
+      DATABASE_URL: postgres://bookstore_app:bookstore_app_pw@127.0.0.1:5432/bookstore_dbms
+      MONGODB_URI: mongodb://127.0.0.1:27017
+      JWT_SECRET: ci-only-secret-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
