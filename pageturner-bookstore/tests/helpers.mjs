@@ -13,7 +13,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Rebuild the SQL database from scratch so every test run starts from the same data. */
 export function resetDatabase() {
-  execFileSync('node', ['scripts/db-setup.mjs', '--reset', '--skip-mongo'], { cwd: root, stdio: 'ignore' });
+  // When MongoDB is running, clear it too: its reviews refer to PostgreSQL ids, which restart after a reset.
+  const mongoUp = mongoIsListening();
+  execFileSync('node', ['scripts/db-setup.mjs', '--reset', ...(mongoUp ? [] : ['--skip-mongo'])], { cwd: root, stdio: 'ignore' });
+}
+
+function mongoIsListening() {
+  try {
+    execFileSync('node', ['-e', "const s=require('net').connect({host:'127.0.0.1',port:27017,timeout:800},()=>process.exit(0));s.on('error',()=>process.exit(1));s.on('timeout',()=>process.exit(1))"], { stdio: 'ignore' });
+    return true;
+  } catch { return false; }
 }
 
 /** Superuser connection (bypasses RLS) - used only to arrange data and inspect results. */
