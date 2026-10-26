@@ -25,7 +25,7 @@ export const GET = api(async ({ session, query }) => {
     const q = str(query.q, 'Search', { max: 100 });
     const like = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
     const pq = bind(q), pl = bind(like), pi = bind(q.replace(/[- ]/g, '').toUpperCase());
-    where.push(`(search_vector @@ websearch_to_tsquery('english', ${pq}) OR title ILIKE ${pl} OR authors ILIKE ${pl} OR isbn = ${pi})`);
+    where.push(`(search_vector @@ websearch_to_tsquery('english', ${pq}) OR title ILIKE ${pl} OR authors ILIKE ${pl} OR category_name ILIKE ${pl} OR isbn = ${pi})`);
   }
   if (query.category) {
     where.push(`category_id IN (SELECT category_id FROM fn_category_tree(${bind(int(query.category, 'Category', { min: 1 }))}))`);
