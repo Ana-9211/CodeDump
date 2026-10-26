@@ -79,7 +79,7 @@ async function main() {
   // ---- 5. MongoDB ------------------------------------------------------------
   if (!skipMongo) {
     try {
-      await setupMongo({ log: say });
+      await setupMongo({ log: say, reset });
       say('MongoDB ready: collections reviews, book_views (validators + indexes)');
     } catch (err) {
       console.warn(`\nWARNING: MongoDB setup skipped (${err.message}).`);
