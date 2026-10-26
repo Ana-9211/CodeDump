@@ -532,6 +532,12 @@ describe('features merged from the SE backlog', () => {
     assert.equal((await admin.del(`/api/admin/categories/${made.json.categoryId}`)).status, 200);
   });
 
+  test('search also matches the category name ("physics" finds the Physics books)', async () => {
+    const r = (await new Client().get('/api/books?q=physics')).json;
+    assert.ok(r.total >= 2, `expected the Physics books, got ${r.total}`);
+    assert.ok(r.items.some((b) => b.category_name === 'Physics'));
+  });
+
   test('FR-06 price and rating filters', async () => {
     const all = (await new Client().get('/api/books?limit=40')).json;
     const cheap = (await new Client().get('/api/books?limit=40&maxPrice=300')).json;
