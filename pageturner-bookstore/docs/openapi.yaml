@@ -1,0 +1,559 @@
+openapi: 3.0.3
+info:
+  title: PageTurner Online Bookstore API
+  version: 1.0.0
+  description: >
+    Generated from the route handlers in src/app/api (npm run docs:openapi).
+    Authentication is an httpOnly cookie named bk_session. The role listed under each operation is enforced by the
+    route AND again by PostgreSQL (GRANTs + row level security). All bodies are JSON.
+servers:
+  - url: http://localhost:3000
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: bk_session }
+  responses:
+    Error: { description: "{ error: message }" }
+paths:
+  /api/account:
+    get:
+      summary: "GET /api/account"
+      description: "Allowed roles: customer, seller, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    patch:
+      summary: "FR-18: edit own profile. The database only allows the name and phone columns, and only on your own row."
+      description: "Allowed roles: customer, seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/account/password:
+    post:
+      summary: "POST /api/account/password"
+      description: "Allowed roles: customer, seller, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/addresses:
+    get:
+      summary: "GET /api/addresses"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "POST /api/addresses"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/addresses/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "PATCH = make this address the default"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: "DELETE /api/addresses/{id}"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/audit:
+    get:
+      summary: "GET /api/admin/audit"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/books:
+    get:
+      summary: "GET /api/admin/books"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/books/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "Moderation. Each change is written to audit_log by a trigger (who, when, before/after)."
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/categories:
+    post:
+      summary: "POST /api/admin/categories"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/categories/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "PATCH /api/admin/categories/{id}"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: "guarded by fn_delete_category: no sub-categories and no books may remain"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/report:
+    get:
+      summary: "and the recursive category tree with sub-tree totals."
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/seller-applications:
+    get:
+      summary: "GET /api/admin/seller-applications"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/seller-applications/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "PATCH /api/admin/seller-applications/{id}"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/settings:
+    get:
+      summary: "GET /api/admin/settings"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    patch:
+      summary: "Business constants (tax rate, shipping fee ...) are data, so an admin can tune them without a deploy"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/users:
+    get:
+      summary: "GET /api/admin/users"
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/users/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "and the column privilege means this role can change `status` and nothing else on users."
+      description: "Allowed roles: admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/auth/forgot:
+    post:
+      summary: "Only a SHA-256 hash of the token is stored; the raw token only travels in the e-mail link."
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/auth/login:
+    post:
+      summary: "POST /api/auth/login"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/auth/logout:
+    post:
+      summary: "POST /api/auth/logout"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/auth/me:
+    get:
+      summary: "Who am I? Also returns the cart size so the navbar can show a badge with one request."
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/auth/register:
+    post:
+      summary: "(fn_register_user refuses any other role inside the database as well)."
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/auth/reset:
+    post:
+      summary: "POST /api/auth/reset"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/books:
+    get:
+      summary: "Every value reaches SQL as a bound parameter ($1, $2 ...), never by string concatenation."
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/books/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      summary: "GET /api/books/{id}"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/books/{id}/reviews:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      summary: "READ: reviews (paged, sortable) + rating summary computed by a MongoDB aggregation"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "CREATE: only customers who actually bought the book (verified purchase) may review it"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/cart:
+    get:
+      summary: "GET /api/cart"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "POST = 'add to cart' (adds to what is already there, max 10)"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    put:
+      summary: "PUT = 'set quantity' (cart page +/- buttons)"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/cart/{bookId}:
+    parameters:
+      - { name: bookId, in: path, required: true, schema: { type: string } }
+    delete:
+      summary: "DELETE /api/cart/{bookId}"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/categories:
+    get:
+      summary: "Whole category tree from the recursive CTE function fn_category_tree()"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/notifications:
+    get:
+      summary: "GET /api/notifications"
+      description: "Allowed roles: customer, seller, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "mark everything (or one notification) as read"
+      description: "Allowed roles: customer, seller, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/orders:
+    get:
+      summary: "GET /api/orders"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "Checkout. One call to the stored procedure = one atomic transaction (see sp_place_order)."
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/orders/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      summary: "GET /api/orders/{id}"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/orders/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      summary: "Cancel before shipping. Triggers return the stock and roll the order status up."
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/reviews/{reviewId}:
+    parameters:
+      - { name: reviewId, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "UPDATE: only the author edits a review"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: "DELETE: the author, or an administrator moderating"
+      description: "Allowed roles: customer, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/reviews/{reviewId}/helpful:
+    parameters:
+      - { name: reviewId, in: path, required: true, schema: { type: string } }
+    post:
+      summary: "Toggle a 'helpful' vote on someone else's review"
+      description: "Allowed roles: customer, seller, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/seller-application:
+    post:
+      summary: "FR-19: a customer applies to sell. The admin decides (FR-25)."
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/seller/books:
+    get:
+      summary: "GET /api/seller/books"
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "Create a listing. It starts as 'pending' until an administrator approves it."
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/seller/books/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      summary: "PUT /api/seller/books/{id}"
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: "'Delete' = soft delete (orders keep pointing at the book)"
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/seller/order-items/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: "The trigger rejects illegal jumps, returns stock on cancel and updates the order's overall status."
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/seller/orders:
+    get:
+      summary: "and orders, and the seller has no privilege at all on the payments table."
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/seller/report:
+    get:
+      summary: "return only THIS seller's sales."
+      description: "Allowed roles: seller"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/trending:
+    get:
+      summary: "the book details come from PostgreSQL. If MongoDB is down the shelf is simply empty."
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/wishlist:
+    get:
+      summary: "GET /api/wishlist"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: "POST /api/wishlist"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/wishlist/{bookId}:
+    parameters:
+      - { name: bookId, in: path, required: true, schema: { type: string } }
+    delete:
+      summary: "DELETE /api/wishlist/{bookId}"
+      description: "Allowed roles: customer"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
