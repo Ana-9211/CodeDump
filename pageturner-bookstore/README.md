@@ -10,7 +10,7 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 | 🍃 **NoSQL** | MongoDB - reviews (CRUD + aggregation + validators) and view events (TTL index) |
 | 🖥 **App** | Next.js 15 (App Router): 42 API route files (56 operations) + 16 pages |
 | 🔐 **Security** | Roles enforced **inside PostgreSQL** (GRANT + Row Level Security + SECURITY DEFINER routines) |
-| ✅ **Tests** | 91 automated tests: database, NoSQL logic, and the real HTTP API |
+| ✅ **Tests** | 93 automated tests: database, NoSQL logic, and the real HTTP API |
 
 ---
 
@@ -21,7 +21,7 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 ```bash
 npm install
 cp .env.example .env            # then edit DATABASE_ADMIN_URL if your postgres superuser needs a password
-npm run db:reset                # creates DB, roles, tables, rules, categories, 36 books, 5 demo users (+ Mongo collections if running)
+npm run db:reset                # creates DB, roles, tables, rules, categories, 36 books, 5 demo users (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
 npm run db:seed                 # optional: 16 demo orders spread over 2 weeks, reviews if Mongo is up
 npm run dev                     # http://localhost:3000
 ```
@@ -34,7 +34,7 @@ npm run dev                     # http://localhost:3000
 
 Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `psql -d bookstore_dbms -f db/postgres/queries/rbac_demo.sql`
 
-> No MongoDB? The shop still works. Only reviews and "Trending" show a friendly "unavailable" message.
+> No MongoDB? The shop still works. The review box on each book shows a friendly "unavailable" message, and the "Trending" shelf on the home page quietly disappears.
 
 ---
 
@@ -101,7 +101,7 @@ no SQL text ever sent to the browser · security headers · password-reset token
 card data are never logged (payments are simulated).
 
 ## ⚠️ Honest limits
-* Payments and e-mail are **simulated** (no gateway, no SMTP). Reset links are printed on the server console and shown on the page in development only.
+* Payments and e-mail are **simulated** (no gateway, no SMTP). Reset links are always printed on the server console (the terminal running the app). They are also shown on the page when you run `npm run dev`, never under `npm start`.
 * MongoDB features were unit-tested against an in-memory engine in the development sandbox; run `npm run nosql:demo` and the full `npm test` with a real `mongod` to see them live (CI does this).
 
 ## Push to your own repository
