@@ -64,7 +64,7 @@ async function main() {
   if (already && !reset) {
     say('Schema already exists - skipping SQL files (use `npm run db:reset` to rebuild).');
   } else {
-    for (const file of ['01_schema.sql', '02_functions.sql', '03_triggers.sql', '04_views.sql', '05_security.sql', '06_reference_data.sql', '08_features.sql']) {
+    for (const file of ['01_schema.sql', '02_functions.sql', '03_triggers.sql', '04_views.sql', '05_security.sql', '06_reference_data.sql', '08_features.sql', '09_audit_more.sql']) {
       await db.query(sql(file));
       say(`Ran ${file}`);
     }
