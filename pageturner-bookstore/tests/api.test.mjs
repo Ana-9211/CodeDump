@@ -548,9 +548,10 @@ describe('features merged from the SE backlog', () => {
     assert.equal(rows[1].old_name, 'Audit Probe'); assert.equal(rows[1].new_name, 'Audit Probe 2');
 
     const before = (await admin.get('/api/admin/settings')).json.items.find((x) => x.setting_key === 'tax_rate_percent').setting_value;
+    const mark = (await db.query('SELECT COALESCE(max(audit_id), 0) AS m FROM audit_log')).rows[0].m;
     assert.equal((await admin.patch('/api/admin/settings', { key: 'tax_rate_percent', value: before + 1 })).status, 200);
     await admin.patch('/api/admin/settings', { key: 'tax_rate_percent', value: before });
-    const a = (await db.query("SELECT old_data->>'setting_value' AS o, new_data->>'setting_value' AS n, new_data->>'setting_key' AS k, actor_id FROM audit_log WHERE table_name='app_settings' ORDER BY audit_id LIMIT 1")).rows[0];
+    const a = (await db.query("SELECT old_data->>'setting_value' AS o, new_data->>'setting_value' AS n, new_data->>'setting_key' AS k, actor_id FROM audit_log WHERE table_name='app_settings' AND audit_id > $1 ORDER BY audit_id LIMIT 1", [mark])).rows[0];
     assert.equal(a.k, 'tax_rate_percent'); assert.equal(Number(a.o), before); assert.equal(Number(a.n), before + 1);
     assert.ok(a.actor_id, 'the admin who made the change is recorded');
   });

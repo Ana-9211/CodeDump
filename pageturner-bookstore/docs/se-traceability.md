@@ -47,7 +47,7 @@ The SE project (MERN, sprint plan) lists the requirements. This table shows wher
 | VFR-10 | The user interface shall be responsive from 360 px to 1920 px viewport width, and a... | ✅ | responsive CSS (grid, breakpoints at 880 px) |
 | VFR-11 | The Lighthouse accessibility score of the main customer pages shall be 90 or higher. | ◐ | labels, roles, skip link, focus styles; Lighthouse not measured |
 | VFR-12 | The system shall work on the latest 2 versions of Chrome, Firefox, Edge and Safari. | — | deployment, CI or team-process item |
-| VFR-13 | Unit test line coverage shall be 70% or higher and the linter shall report zero errors. | ✅ | 91 automated tests |
+| VFR-13 | Unit test line coverage shall be 70% or higher and the linter shall report zero errors. | ✅ | 93 automated tests |
 | VFR-14 | Order and payment records shall be written transactionally, and the database shall be... | ✅ | orders + payment + stock written in one transaction |
 | VFR-15 | The REST API shall be documented in OpenAPI format and every endpoint shall be listed. | ✅ | `docs/openapi.yaml` |
 | TASK-01 | Set up GitHub Actions CI (lint + server/client tests) | — | deployment, CI or team-process item |

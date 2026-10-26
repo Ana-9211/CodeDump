@@ -6,7 +6,7 @@
 |---|---|---|
 | `tests/database.test.mjs` | 34 | constraints, `sp_place_order` atomic rollback, **last-copy race** (two buyers, one book, exactly one wins), triggers, status workflow, RBAC denials, RLS isolation, new-table lockdown |
 | `tests/nosql.test.mjs` | 15 | review service CRUD, one-review-per-user, helpful votes, aggregation, trending, validator shape |
-| `tests/api.test.mjs` | 42 | the real Next.js server over HTTP: auth, lockout, CSRF, each role's allowed/forbidden endpoints, cart → checkout → cancel, seller & admin flows, password reset, wishlist, seller applications, category admin, filters |
+| `tests/api.test.mjs` | 44 | the real Next.js server over HTTP: auth, lockout, CSRF, each role's allowed/forbidden endpoints, cart → checkout → cancel, seller & admin flows, password reset, wishlist, seller applications, category admin, filters |
 
 Run one suite: `node --test tests/api.test.mjs`. Tests that need MongoDB are skipped when port 27017 is closed.
 
