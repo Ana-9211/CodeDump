@@ -38,7 +38,7 @@ export const GET = api(async ({ session, query }) => {
   if (query.minRating) where.push(`avg_rating >= ${bind(int(query.minRating, 'Minimum rating', { min: 1, max: 5 }))}`);
 
   const sql = `
-    SELECT book_id, title, authors, category_id, category_name, store_name,
+    SELECT book_id, title, authors, category_id, category_name, store_name, cover_url,
            price_cents, stock, avg_rating, review_count, created_at,
            count(*) OVER () AS total
       FROM v_book_catalog
