@@ -120,6 +120,8 @@ describe('web security', () => {
     assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(r.headers.get('x-frame-options'), 'DENY');
     assert.equal(r.headers.get('x-powered-by'), null);
+    assert.match(r.headers.get('content-security-policy'), /default-src 'self'.*frame-ancestors 'none'.*object-src 'none'/);
+    assert.match(r.headers.get('strict-transport-security'), /max-age=\d{7,}/);
   });
   test('the session cookie is HttpOnly', async () => {
     const res = await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'customer1@bookstore.test', password: PASSWORD }) });
@@ -696,5 +698,13 @@ describe('SE requirements closed in the merged app', () => {
     assert.equal((await seller.get('/api/seller/report?from=2026-02-10&to=2026-02-01')).status, 400, 'start after end');
     assert.equal((await seller.get('/api/seller/report?from=2024-01-01&to=2026-01-01')).status, 400, 'more than a year');
     assert.equal((await seller.get('/api/seller/report?from=2026-02-01&to=2026-02-05')).json.report.length, 5);
+  });
+
+  test('VFR-09 health probe reports PostgreSQL and MongoDB without needing a login', async () => {
+    const r = await new Client().get('/api/health');
+    assert.equal(r.status, 200);
+    assert.equal(r.json.status, 'ok'); assert.equal(r.json.postgres, 'up');
+    assert.ok(['up', 'down'].includes(r.json.mongo));
+    assert.equal(r.headers.get('cache-control'), 'no-store');
   });
 });
