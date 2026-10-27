@@ -119,3 +119,24 @@ describe('book form parsing and report dates', () => {
 test('verification tokens are hashed with SHA-256', () => {
   assert.equal(sha256('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 });
+
+test('VFR-15 docs/openapi.yaml lists every route handler and method', async () => {
+  const fs = await import('node:fs'); const path = await import('node:path');
+  const yaml = fs.readFileSync('docs/openapi.yaml', 'utf8');
+  const routes = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(path.join(d, e.name));
+      else if (e.name === 'route.js') routes.push(path.join(d, e.name));
+    }
+  })('src/app/api');
+  assert.ok(routes.length > 40);
+  for (const f of routes) {
+    const url = '/' + path.relative('src/app', path.dirname(f)).split(path.sep).map((s) => s.replace(/^\[(.+)\]$/, '{$1}')).join('/');
+    const block = yaml.split(/^  (?=\/api)/m).find((b) => b.startsWith(url + ':\n'));
+    assert.ok(block, `${url} missing from openapi.yaml - run npm run openapi`);
+    for (const m of fs.readFileSync(f, 'utf8').matchAll(/^export (?:const|async function) (GET|POST|PUT|PATCH|DELETE)\b/gm)) {
+      assert.ok(block.includes(`    ${m[1].toLowerCase()}:\n`), `${m[1]} ${url} missing from openapi.yaml`);
+    }
+  }
+});
