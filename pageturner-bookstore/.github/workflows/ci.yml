@@ -23,5 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - run: npm run lint
       - run: npm run build
-      - run: npm test
+      - run: npm run coverage          # runs all tests and fails below 70 % line coverage
+      - run: npm run openapi && git diff --exit-code docs/openapi.yaml   # the API spec must be up to date
