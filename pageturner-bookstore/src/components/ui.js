@@ -1,13 +1,18 @@
 'use client';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from './Providers.js';
 import { money } from '@/lib/client.js';
 
 const HUES = [152, 24, 204, 340, 38, 268, 176, 8];
-export function BookCover({ title, authors, id = 0, size }) {
+export function BookCover({ title, authors, id = 0, size, src }) {
   const h = HUES[Number(id) % HUES.length];
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className={`cover cover-img ${size ?? ''}`} src={src} alt={`Cover of ${title}`} loading="lazy" onError={() => setBroken(true)} />;
+  }
   return (
     <div className={`cover ${size ?? ''}`} style={{ background: `linear-gradient(155deg, hsl(${h} 42% 30%), hsl(${h} 46% 18%))` }} aria-hidden="true">
       <div className="c-title">{title}</div>
@@ -64,7 +69,7 @@ export function BookCard({ book, onAdd }) {
   return (
     <article className="book-card">
       <Link href={`/books/${book.book_id}`} className="cover-link" aria-label={`${book.title} by ${book.authors}`}>
-        <BookCover title={book.title} authors={book.authors} id={book.book_id} />
+        <BookCover title={book.title} authors={book.authors} id={book.book_id} src={book.cover_url} />
       </Link>
       <div className="body">
         <Link href={`/books/${book.book_id}`} className="title" style={{ textDecoration: 'none', color: 'inherit' }}>{book.title}</Link>

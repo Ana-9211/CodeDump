@@ -211,3 +211,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .bar-row { grid-template-columns: 90px 1fr 40px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* real cover images (FR-07) */
+img.cover-img { display: block; width: 100%; height: auto; object-fit: cover; background: var(--paper-2); }
+img.cover-img.small { width: 54px; height: 72px; padding: 0; }
+
+.verify-banner { background: #fff7e0; color: #6b4e00; border-bottom: 1px solid #f0d58a; text-align: center; padding: 8px 16px; font-size: .9rem; }
+.verify-banner a, .verify-banner .link { color: inherit; font-weight: 600; text-decoration: underline; }

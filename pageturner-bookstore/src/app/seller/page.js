@@ -5,7 +5,7 @@ import { useApp } from '@/components/Providers.js';
 import { Empty, ErrorBox, Loading, Status, useGuard } from '@/components/ui.js';
 import { BarList, Kpi, SalesChart } from '@/components/Charts.js';
 
-const BLANK = { title: '', authors: '', isbn: '', categoryId: '', price: '', stock: '', description: '', language: 'English' };
+const BLANK = { title: '', authors: '', isbn: '', categoryId: '', price: '', stock: '', description: '', language: 'English', coverUrl: '', lowStock: 5 };
 
 function BookForm({ initial, categories, onSaved, onCancel }) {
   const { toast } = useApp();
@@ -34,9 +34,11 @@ function BookForm({ initial, categories, onSaved, onCancel }) {
         <div className="field"><label htmlFor="bp">Price (₹)</label><input id="bp" type="number" min="1" step="0.01" required value={f.price} onChange={set('price')} /></div>
         <div className="field"><label htmlFor="bs">Stock</label><input id="bs" type="number" min="0" required value={f.stock} onChange={set('stock')} /></div>
         <div className="field"><label htmlFor="bl">Language</label><input id="bl" value={f.language} onChange={set('language')} /></div>
+        <div className="field"><label htmlFor="bls">Alert me when stock falls to</label><input id="bls" type="number" min="0" value={f.lowStock} onChange={set('lowStock')} /><div className="hint">You get a notification when stock drops to this number or below.</div></div>
+        <div className="field"><label htmlFor="bcu">Cover image URL</label><input id="bcu" type="url" placeholder="https://…/cover.jpg" value={f.coverUrl} onChange={set('coverUrl')} /><div className="hint">Optional. A generated cover is shown if empty.</div></div>
       </div>
       <div className="field"><label htmlFor="bd">Description</label><textarea id="bd" value={f.description} onChange={set('description')} /></div>
-      {editing && <p className="hint">Saving an edit sends an approved book back to “pending” so the admin can re-check it.</p>}
+      {editing && <p className="hint">Editing a rejected listing sends it back to the administrator for approval. Edits to a live listing take effect immediately.</p>}
       <div className="actions"><button className="btn">{editing ? 'Save changes' : 'Submit listing'}</button><button type="button" className="btn secondary" onClick={onCancel}>Cancel</button></div>
     </form>
   );
@@ -66,7 +68,7 @@ function Books() {
               <td><Status value={b.status} /></td><td className="num">{money(b.price_cents)}</td><td className="num">{b.stock}</td>
               <td className="num">{Number(b.avg_rating).toFixed(1)} ({b.review_count})</td>
               <td><div className="actions">
-                <button className="btn secondary sm" onClick={() => setForm({ bookId: b.book_id, title: b.title, authors: b.authors, isbn: b.isbn, categoryId: b.category_id, price: (b.price_cents / 100).toFixed(2), stock: b.stock, description: b.description ?? '', language: b.language })}>Edit</button>
+                <button className="btn secondary sm" onClick={() => setForm({ bookId: b.book_id, title: b.title, authors: b.authors, isbn: b.isbn, categoryId: b.category_id, price: (b.price_cents / 100).toFixed(2), stock: b.stock, description: b.description ?? '', language: b.language, coverUrl: b.cover_url ?? '', lowStock: b.low_stock_threshold })}>Edit</button>
                 <button className="btn danger secondary sm" onClick={() => remove(b)}>Remove</button></div></td>
             </tr>))}</tbody>
         </table></div>

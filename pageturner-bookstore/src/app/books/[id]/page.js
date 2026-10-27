@@ -78,7 +78,7 @@ export default function BookPage({ params }) {
     <>
       <p className="small"><Link href="/books">← All books</Link> / <Link href={`/books?category=${b.category_id}`}>{b.category_name}</Link></p>
       <div className="grid-2" style={{ gridTemplateColumns: 'minmax(220px,300px) 1fr', alignItems: 'start' }}>
-        <BookCover title={b.title} authors={b.authors} id={b.book_id} size="large" />
+        <BookCover title={b.title} authors={b.authors} id={b.book_id} src={b.cover_url} size="large" />
         <div className="stack">
           <div>
             <h1>{b.title}</h1>
