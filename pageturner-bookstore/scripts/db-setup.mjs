@@ -64,7 +64,7 @@ async function main() {
   if (already && !reset) {
     say('Schema already exists - skipping SQL files (use `npm run db:reset` to rebuild).');
   } else {
-    for (const file of ['01_schema.sql', '02_functions.sql', '03_triggers.sql', '04_views.sql', '05_security.sql', '06_reference_data.sql', '08_features.sql', '09_audit_more.sql']) {
+    for (const file of ['01_schema.sql', '02_functions.sql', '03_triggers.sql', '04_views.sql', '05_security.sql', '06_reference_data.sql', '08_features.sql', '09_audit_more.sql', '10_se_requirements.sql']) {
       await db.query(sql(file));
       say(`Ran ${file}`);
     }
@@ -104,7 +104,7 @@ async function seedDemoUsers(db) {
   ];
   for (const [name, email, role, store] of users) {
     const { rows } = await db.query(
-      'INSERT INTO users (name, email, password_hash, role_id) SELECT $1, $2, $3, role_id FROM roles WHERE role_name = $4 RETURNING user_id',
+      'INSERT INTO users (name, email, password_hash, role_id, email_verified_at) SELECT $1, $2, $3, role_id, now() FROM roles WHERE role_name = $4 RETURNING user_id',
       [name, email, hash, role],
     );
     if (store) await db.query('INSERT INTO seller_profiles (user_id, store_name, description) VALUES ($1, $2, $3)', [rows[0].user_id, store, `${store} - demo seller`]);
