@@ -14,6 +14,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 3111;
 const BASE = `http://127.0.0.1:${PORT}`;
 let server, db;
+const TEST_CARD = { number: '4242 4242 4242 4242', expiry: '12/39', cvv: '123' };
 
 class Client {
   constructor() { this.jar = new Map(); }
@@ -218,16 +219,16 @@ describe('customer journey: cart -> checkout -> cancel', () => {
   });
   test('checkout needs a valid address; then places the order atomically', async () => {
     const dune = await bookId('Dune'); const before = await stockOf('Dune');
-    assert.equal((await cust.post('/api/orders', { addressId: 999999, paymentMethod: 'card' })).status, 404);
+    assert.equal((await cust.post('/api/orders', { addressId: 999999, paymentMethod: 'card', card: TEST_CARD })).status, 404);
     const addr = (await cust.get('/api/addresses')).json.items[0];
     assert.equal((await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'bitcoin' })).status, 400);
-    const placed = await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'upi' });
+    const placed = await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'upi', upi: 'reader@bank' });
     assert.equal(placed.status, 200, JSON.stringify(placed.json));
     orderId = placed.json.order.order_id;
     assert.match(placed.json.order.order_number, /^BK\d{6}-\d{5}$/);
     assert.equal(await stockOf('Dune'), before - 1);
     assert.equal((await cust.get('/api/cart')).json.items.length, 0, 'cart emptied');
-    const empty = await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'upi' });
+    const empty = await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'upi', upi: 'reader@bank' });
     assert.equal(empty.status, 409); assert.match(empty.json.error, /cart is empty/);
     assert.ok(dune);
   });
@@ -328,7 +329,7 @@ describe('seller and admin journey', () => {
     assert.equal((await buyer.get(`/api/orders/${o.order_id}`)).json.order.status, 'Cancelled');
     // second order, shipped this time
     await buyer.post('/api/cart', { bookId: newBook, quantity: 1 });
-    const o2 = (await buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card' })).json.order;
+    const o2 = (await buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card', card: TEST_CARD })).json.order;
     const l2 = (await owner.get('/api/seller/orders')).json.items.find((l) => l.order_number === o2.order_number);
     await owner.patch(`/api/seller/order-items/${l2.order_item_id}`, { status: 'Packed' });
     await owner.patch(`/api/seller/order-items/${l2.order_item_id}`, { status: 'Shipped' });
@@ -410,7 +411,7 @@ describe('MongoDB features over HTTP', async () => {
       assert.equal((await cust.post(`/api/books/${id}/reviews`, { rating: 5, body: 'Lovely' })).status, 403, 'not bought yet');
       await cust.post('/api/cart', { bookId: id, quantity: 1 });
       const addr = (await cust.get('/api/addresses')).json.items[0];
-      const placed = (await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card' })).json.order;
+      const placed = (await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card', card: TEST_CARD })).json.order;
       assert.equal((await cust.post(`/api/books/${id}/reviews`, { rating: 5, body: 'Too early' })).status, 403, 'FR-17: paid but not delivered yet');
       for (const st of ['Packed', 'Shipped', 'Delivered']) await db.query('UPDATE order_items SET fulfilment_status=$1 WHERE order_id=$2', [st, placed.order_id]);
       const made = await cust.post(`/api/books/${id}/reviews`, { rating: 5, title: 'Classic', body: 'There and back again.' });
@@ -647,5 +648,43 @@ describe('SE requirements closed in the merged app', () => {
     assert.equal(ok.status, 200, JSON.stringify(ok.json));
     const row = (await db.query("SELECT cover_url, low_stock_threshold FROM books WHERE title='Cover Test Book'")).rows[0];
     assert.deepEqual(row, { cover_url: 'https://example.com/c.jpg', low_stock_threshold: 7 });
+  });
+
+  test('FR-13 payment gateway: declined cards create no order; approved ones store only a reference and last 4 digits', async () => {
+    const buyer = await as('customer2@bookstore.test');
+    const id = await bookId('Dune');
+    const addr = (await buyer.get('/api/addresses')).json.items[0];
+    await buyer.post('/api/cart', { bookId: id, quantity: 1 });
+    const stock = await stockOf('Dune');
+    const orders = async () => (await buyer.get('/api/orders')).json.items.length;
+    const before = await orders();
+    const pay = (card) => buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card', card });
+    assert.equal((await pay(undefined)).status, 400, 'card details required');
+    assert.equal((await pay({ number: '4242 4242 4242 4241', expiry: '12/39', cvv: '123' })).status, 400, 'bad Luhn checksum');
+    assert.equal((await pay({ number: '4242424242424242', expiry: '01/20', cvv: '123' })).status, 400, 'expired');
+    const declined = await pay({ number: '4000 0000 0000 0002', expiry: '12/39', cvv: '123' });
+    assert.equal(declined.status, 402); assert.match(declined.json.error, /declined/i);
+    assert.equal((await pay({ number: '4000 0000 0000 9995', expiry: '12/39', cvv: '123' })).status, 402);
+    assert.equal(await orders(), before, 'no order after a failed payment');
+    assert.equal(await stockOf('Dune'), stock, 'stock untouched');
+    assert.equal((await buyer.get('/api/cart')).json.items.length, 1, 'cart kept so the customer can retry');
+    const upiBad = await buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'upi', upi: 'fail@upi' });
+    assert.equal(upiBad.status, 402);
+
+    const ok = await pay(TEST_CARD);
+    assert.equal(ok.status, 200, JSON.stringify(ok.json));
+    assert.equal(ok.json.payment.status, 'Paid'); assert.equal(ok.json.payment.detail, 'Card ending 4242');
+    const row = (await db.query('SELECT transaction_ref, detail, status FROM payments WHERE order_id=$1', [ok.json.order.order_id])).rows[0];
+    assert.equal(row.transaction_ref, ok.json.payment.reference); assert.match(row.transaction_ref, /^GW[0-9A-F]{14}$/);
+    // the full card number and CVV exist nowhere in the database
+    const dump = JSON.stringify((await db.query('SELECT p::text FROM payments p')).rows) + JSON.stringify((await db.query('SELECT a::text FROM audit_log a')).rows);
+    assert.ok(!dump.includes('4242424242424242') && !dump.includes('4242 4242 4242 4242') && !dump.includes('"123"'));
+    // cancelling a paid order refunds it
+    assert.equal((await buyer.post(`/api/orders/${ok.json.order.order_id}/cancel`)).status, 200);
+    assert.equal((await db.query('SELECT status FROM payments WHERE order_id=$1', [ok.json.order.order_id])).rows[0].status, 'Refunded');
+    // cash on delivery still works without the gateway
+    await buyer.post('/api/cart', { bookId: id, quantity: 1 });
+    const cod = await buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'cod' });
+    assert.equal(cod.json.payment.status, 'Pending');
   });
 });
