@@ -27,5 +27,6 @@ export const POST = api(async ({ request }) => {
 
   await asApp('SELECT fn_record_login($1::bigint, true)', [u.user_id]);
   await startSession({ userId: u.user_id, role: u.role_name });
-  return { user: { userId: u.user_id, role: u.role_name, name: u.name } };
+  const [me] = await asApp('SELECT * FROM fn_get_session_user($1::bigint)', [u.user_id]);
+  return { user: { userId: u.user_id, role: u.role_name, name: u.name, emailVerified: me.email_verified } };
 });
