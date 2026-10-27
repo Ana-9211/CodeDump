@@ -1,6 +1,8 @@
-node_modules/
-.next/
-.env
-.env.local
 *.log
 .DS_Store
+.env
+.env.local
+.next/
+backups/
+coverage/
+node_modules/
