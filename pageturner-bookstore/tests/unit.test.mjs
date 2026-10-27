@@ -133,7 +133,7 @@ test('VFR-15 docs/openapi.yaml lists every route handler and method', async () =
   assert.ok(routes.length > 40);
   for (const f of routes) {
     const url = '/' + path.relative('src/app', path.dirname(f)).split(path.sep).map((s) => s.replace(/^\[(.+)\]$/, '{$1}')).join('/');
-    const block = yaml.split(/^  (?=\/api)/m).find((b) => b.startsWith(url + ':\n'));
+    const block = yaml.split(/^ {2}(?=\/api)/m).find((b) => b.startsWith(url + ':\n'));
     assert.ok(block, `${url} missing from openapi.yaml - run npm run openapi`);
     for (const m of fs.readFileSync(f, 'utf8').matchAll(/^export (?:const|async function) (GET|POST|PUT|PATCH|DELETE)\b/gm)) {
       assert.ok(block.includes(`    ${m[1].toLowerCase()}:\n`), `${m[1]} ${url} missing from openapi.yaml`);

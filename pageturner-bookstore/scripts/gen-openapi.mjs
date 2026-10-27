@@ -50,7 +50,7 @@ for (const r of routes) {
   const params = [...r.url.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
   if (params.length) out += `    parameters:\n${params.map((p) => `      - { name: ${p}, in: path, required: true, schema: { type: string } }\n`).join('')}`;
   ops.sort((a, b) => METHODS.indexOf(a.method) - METHODS.indexOf(b.method));
-  for (const [n, op] of ops.entries()) {
+  for (const op of ops) {
     const end = lines.findIndex((l, i) => i > op.i && /^export /.test(l));
     const body = lines.slice(op.i, end === -1 ? lines.length : end).join('\n');
     const roles = /roles:\s*\[([^\]]*)\]/.exec(body)?.[1].split(',').map((s) => s.replace(/['"\s]/g, '')).filter(Boolean);
