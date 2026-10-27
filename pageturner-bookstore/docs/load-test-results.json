@@ -1,0 +1,57 @@
+{
+  "when": "2026-10-27T16:17:55.619Z",
+  "connections": 100,
+  "seconds": 10,
+  "rows": [
+    {
+      "title": "Home page (VFR-01)",
+      "path": "/",
+      "p95_ms": 169,
+      "p99_ms": 199,
+      "avg_ms": 92.49,
+      "req_per_sec": 1073,
+      "error_rate_pct": 0,
+      "limit_ms": 3000
+    },
+    {
+      "title": "Catalogue page (VFR-01)",
+      "path": "/books",
+      "p95_ms": 100,
+      "p99_ms": 122,
+      "avg_ms": 77.87,
+      "req_per_sec": 1273,
+      "error_rate_pct": 0,
+      "limit_ms": 3000
+    },
+    {
+      "title": "Browse API (VFR-02)",
+      "path": "/api/books?limit=20",
+      "p95_ms": 477,
+      "p99_ms": 1172,
+      "avg_ms": 353.76,
+      "req_per_sec": 279,
+      "error_rate_pct": 0,
+      "limit_ms": 500
+    },
+    {
+      "title": "Search API (VFR-02)",
+      "path": "/api/books?q=physics",
+      "p95_ms": 369,
+      "p99_ms": 573,
+      "avg_ms": 275.89,
+      "req_per_sec": 358,
+      "error_rate_pct": 0,
+      "limit_ms": 500
+    },
+    {
+      "title": "Book detail API (VFR-02)",
+      "path": "/api/books/1",
+      "p95_ms": 300,
+      "p99_ms": 362,
+      "avg_ms": 225.75,
+      "req_per_sec": 436,
+      "error_rate_pct": 0,
+      "limit_ms": 500
+    }
+  ]
+}
