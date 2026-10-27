@@ -1,0 +1,17 @@
+sequenceDiagram
+  actor G as Guest
+  participant API as /api/auth/register
+  participant PG as PostgreSQL
+  participant ML as Mailer (console adapter)
+  participant V as /api/auth/verify
+
+  G->>API: name, e-mail, password (min 8, letter + digit)
+  API->>PG: fn_register_user(...bcrypt hash...)
+  API->>API: random 256-bit token, SHA-256 hash
+  API->>PG: fn_create_email_verification(user, hash)
+  API->>ML: send link /verify-email?token=...
+  API-->>G: 200, signed in, banner "please confirm your e-mail"
+  G->>V: token from the link
+  V->>PG: fn_verify_email(sha256(token))
+  PG-->>V: true once, false when used or older than 24 h
+  V-->>G: 200 verified, or 400 invalid link

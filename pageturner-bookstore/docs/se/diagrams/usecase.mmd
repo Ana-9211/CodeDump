@@ -1,0 +1,38 @@
+flowchart LR
+  guest([Guest]):::actor
+  cust([Customer]):::actor
+  sell([Seller]):::actor
+  adm([Administrator]):::actor
+  mail([Email service]):::ext
+  pay([Payment gateway]):::ext
+
+  subgraph Shop [PageTurner online bookstore]
+    UC1(Browse and search catalogue)
+    UC2(View book details)
+    UC3(Register / verify e-mail)
+    UC4(Sign in / reset password)
+    UC5(Manage cart and wishlist)
+    UC6(Checkout and pay)
+    UC7(Track or cancel order)
+    UC8(Review a delivered book)
+    UC9(Manage profile and addresses)
+    UC10(Apply to become a seller)
+    UC11(Manage own listings)
+    UC12(Fulfil orders)
+    UC13(View sales report)
+    UC14(Approve sellers and listings)
+    UC15(Manage users and categories)
+    UC16(Moderate reviews)
+    UC17(View platform reports)
+  end
+
+  guest --- UC1 & UC2 & UC3 & UC4
+  cust --- UC1 & UC2 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10
+  sell --- UC4 & UC9 & UC11 & UC12 & UC13
+  adm --- UC4 & UC14 & UC15 & UC16 & UC17
+  UC3 -.- mail
+  UC4 -.- mail
+  UC6 -.- pay
+  UC6 -.- mail
+  classDef actor fill:#e3efe9,stroke:#2f5d50,color:#1f2a2e
+  classDef ext fill:#fbefd9,stroke:#96600f,color:#1f2a2e
