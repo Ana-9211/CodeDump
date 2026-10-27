@@ -40,6 +40,7 @@ CREATE TABLE users (
     failed_login_count INT          NOT NULL DEFAULT 0
                        CONSTRAINT ck_failed_login CHECK (failed_login_count >= 0),
     locked_until       TIMESTAMPTZ,
+    email_verified_at  TIMESTAMPTZ,
     created_at         TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at         TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
@@ -105,6 +106,8 @@ CREATE TABLE books (
     description         TEXT         NOT NULL DEFAULT ''
                         CONSTRAINT ck_book_desc CHECK (length(description) <= 5000),
     language            VARCHAR(30)  NOT NULL DEFAULT 'English',
+    cover_url           VARCHAR(300)
+                        CONSTRAINT ck_cover_url CHECK (cover_url IS NULL OR cover_url ~* '^https?://[^[:space:]]+$'),
     price_cents         INT          NOT NULL CONSTRAINT ck_book_price CHECK (price_cents > 0),
     stock               INT          NOT NULL DEFAULT 0 CONSTRAINT ck_book_stock CHECK (stock >= 0),
     low_stock_threshold INT          NOT NULL DEFAULT 5 CONSTRAINT ck_book_low CHECK (low_stock_threshold >= 0),

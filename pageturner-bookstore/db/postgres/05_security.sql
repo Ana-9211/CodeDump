@@ -41,7 +41,7 @@ GRANT SELECT ON roles, categories, authors, book_authors, seller_profiles, books
    TO bookstore_guest, bookstore_customer, bookstore_seller, bookstore_admin;
 
 -- users: never expose password_hash or lock counters (column-level GRANT)
-GRANT SELECT (user_id, name, email, role_id, status, phone, created_at, updated_at) ON users
+GRANT SELECT (user_id, name, email, role_id, status, phone, email_verified_at, created_at, updated_at) ON users
    TO bookstore_customer, bookstore_seller, bookstore_admin;
 GRANT UPDATE (status) ON users TO bookstore_admin;                       -- suspend / reactivate
 
@@ -77,7 +77,7 @@ GRANT EXECUTE ON FUNCTION  fn_cart_totals()            TO bookstore_customer;
 GRANT EXECUTE ON PROCEDURE sp_place_order(BIGINT, TEXT, BIGINT) TO bookstore_customer;
 GRANT EXECUTE ON PROCEDURE sp_cancel_order(BIGINT)     TO bookstore_customer;
 
-GRANT EXECUTE ON FUNCTION  fn_upsert_book(BIGINT, TEXT, TEXT, INT, INT, INT, TEXT, TEXT, TEXT[]) TO bookstore_seller;
+GRANT EXECUTE ON FUNCTION  fn_upsert_book(BIGINT, TEXT, TEXT, INT, INT, INT, TEXT, TEXT, TEXT[], TEXT, INT) TO bookstore_seller;
 GRANT EXECUTE ON PROCEDURE sp_remove_book(BIGINT)      TO bookstore_seller;
 
 GRANT EXECUTE ON FUNCTION fn_sales_report(DATE, DATE)  TO bookstore_seller, bookstore_admin;

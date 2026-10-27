@@ -7,7 +7,7 @@
 -- Catalogue card: book + category + store + comma-joined authors (M:N flattened)
 CREATE OR REPLACE VIEW v_book_catalog WITH (security_invoker = true) AS
 SELECT b.book_id, b.title, b.isbn, b.description, b.language,
-       b.price_cents, b.stock, b.status, b.rejection_reason, b.avg_rating, b.review_count, b.created_at,
+       b.cover_url, b.low_stock_threshold, b.price_cents, b.stock, b.status, b.rejection_reason, b.avg_rating, b.review_count, b.created_at,
        b.category_id, c.name AS category_name,
        b.seller_id, sp.store_name,
        COALESCE(string_agg(a.name, ', ' ORDER BY ba.author_order), '') AS authors,
