@@ -2,6 +2,15 @@
 import { HttpError } from './errors.js';
 import { int, objectBody, rupeesToPaise, str } from './validate.js';
 
+function parseCoverUrl(value) {
+  const v = str(value, 'Cover image URL', { max: 300, optional: true });
+  if (!v) return null;
+  let u;
+  try { u = new URL(v); } catch { throw new HttpError(400, 'Cover image must be a full web address (https://...).'); }
+  if (!['http:', 'https:'].includes(u.protocol)) throw new HttpError(400, 'Cover image must start with http:// or https://.');
+  return v;
+}
+
 export function parseBookInput(raw) {
   const b = objectBody(raw);
   let authors = b.authors;
@@ -21,12 +30,14 @@ export function parseBookInput(raw) {
     stock: int(b.stock, 'Stock', { min: 0, max: 100000 }),
     description: str(b.description, 'Description', { max: 5000, optional: true }) ?? '',
     language: str(b.language, 'Language', { max: 30, optional: true }) ?? 'English',
+    coverUrl: parseCoverUrl(b.coverUrl),
+    lowStock: b.lowStock === undefined || b.lowStock === '' ? null : int(b.lowStock, 'Low-stock alert level', { min: 0, max: 100000 }),
     authors,
   };
 }
 
-export const UPSERT_SQL = 'SELECT fn_upsert_book($1::bigint, $2, $3, $4::int, $5::int, $6::int, $7, $8, $9::text[]) AS id';
-export const upsertParams = (id, p) => [id, p.title, p.isbn, p.categoryId, p.pricePaise, p.stock, p.description, p.language, p.authors];
+export const UPSERT_SQL = 'SELECT fn_upsert_book($1::bigint, $2, $3, $4::int, $5::int, $6::int, $7, $8, $9::text[], $10, $11::int) AS id';
+export const upsertParams = (id, p) => [id, p.title, p.isbn, p.categoryId, p.pricePaise, p.stock, p.description, p.language, p.authors, p.coverUrl, p.lowStock];
 
 /** YYYY-MM-DD range for reports; defaults to the last N days. */
 export function dateRange(query, defaultDays = 14) {
