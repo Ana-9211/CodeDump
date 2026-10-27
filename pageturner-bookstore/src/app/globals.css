@@ -12,7 +12,7 @@
   --forest: #2f5d50;
   --forest-dark: #234638;
   --forest-tint: #e3efe9;
-  --amber: #c8862a;
+  --amber: #96600f;
   --amber-tint: #fbefd9;
   --brick: #b04a3c;
   --brick-tint: #f9e4e0;
@@ -68,7 +68,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 20px; text-align: cent
 .btn.secondary { background: transparent; color: var(--forest); }
 .btn.secondary:hover { background: var(--forest-tint); color: var(--forest-dark); }
 .btn.amber { background: var(--amber); border-color: var(--amber); }
-.btn.amber:hover { background: #a76f1f; }
+.btn.amber:hover { background: #7d4e08; }
 .btn.danger { background: var(--brick); border-color: var(--brick); }
 .btn.danger:hover { background: #8e3b2f; }
 .btn.danger.secondary { background: transparent; color: var(--brick); }
