@@ -101,3 +101,16 @@ export function useGuard(roles) {
   }, [ready, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
   return allowed;
 }
+
+/** Two date inputs + quick presets; calls onChange({from,to}) with ISO dates (FR-23 / FR-28 reports). */
+export function DateRange({ value, onChange, presets = [7, 14, 30, 90] }) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const preset = (days) => { const to = new Date(); onChange({ from: iso(new Date(to.getTime() - (days - 1) * 86400000)), to: iso(to) }); };
+  return (
+    <div className="date-range" role="group" aria-label="Report period">
+      <label>From <input type="date" value={value.from} max={value.to || undefined} onChange={(e) => onChange({ ...value, from: e.target.value })} /></label>
+      <label>To <input type="date" value={value.to} min={value.from || undefined} onChange={(e) => onChange({ ...value, to: e.target.value })} /></label>
+      {presets.map((d) => <button key={d} type="button" className="chip" onClick={() => preset(d)}>Last {d} days</button>)}
+    </div>
+  );
+}

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useFetch, patch, post, del, dateTime, money } from '@/lib/client.js';
 import { useApp } from '@/components/Providers.js';
-import { Empty, ErrorBox, Loading, Status, useGuard } from '@/components/ui.js';
+import { DateRange, Empty, ErrorBox, Loading, Status, useGuard } from '@/components/ui.js';
 import { BarList, Kpi, SalesChart } from '@/components/Charts.js';
 
 function Moderation() {
@@ -55,13 +55,15 @@ function Users() {
 }
 
 function Dashboard() {
-  const r = useFetch('/api/admin/report');
+  const [range, setRange] = useState({ from: '', to: '' });
+  const r = useFetch(`/api/admin/report${range.from && range.to ? `?from=${range.from}&to=${range.to}` : ''}`);
   if (r.loading) return <Loading />;
   if (r.error) return <ErrorBox error={r.error} />;
   const d = r.data;
   return (
     <>
-      <h2>Last 30 days</h2>
+      <h2>{range.from && range.to ? `${range.from} → ${range.to}` : 'Last 30 days'}</h2>
+      <DateRange value={range} onChange={setRange} />
       <div className="kpis">
         <Kpi label="Revenue" value={money(d.totals.revenue_cents)} /><Kpi label="Orders" value={d.totals.orders} tone="blue" />
         <Kpi label="Live books" value={d.counts.live_books} tone="amber" /><Kpi label="Awaiting approval" value={d.counts.pending_books} tone={d.counts.pending_books ? 'red' : 'green'} />

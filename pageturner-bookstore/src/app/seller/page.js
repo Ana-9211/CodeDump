@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useFetch, post, put, patch, del, dateTime, money } from '@/lib/client.js';
 import { useApp } from '@/components/Providers.js';
-import { Empty, ErrorBox, Loading, Status, useGuard } from '@/components/ui.js';
+import { DateRange, Empty, ErrorBox, Loading, Status, useGuard } from '@/components/ui.js';
 import { BarList, Kpi, SalesChart } from '@/components/Charts.js';
 
 const BLANK = { title: '', authors: '', isbn: '', categoryId: '', price: '', stock: '', description: '', language: 'English', coverUrl: '', lowStock: 5 };
@@ -108,13 +108,15 @@ function Orders() {
 }
 
 function Report() {
-  const r = useFetch('/api/seller/report');
+  const [range, setRange] = useState({ from: '', to: '' });
+  const r = useFetch(`/api/seller/report${range.from && range.to ? `?from=${range.from}&to=${range.to}` : ''}`);
   if (r.loading) return <Loading />;
   if (r.error) return <ErrorBox error={r.error} />;
   const d = r.data;
   return (
     <>
-      <h2>Last 14 days</h2>
+      <h2>{range.from && range.to ? `${range.from} → ${range.to}` : 'Last 14 days'}</h2>
+      <DateRange value={range} onChange={setRange} />
       <div className="kpis">
         <Kpi label="Revenue" value={money(d.totals.revenue_cents)} /><Kpi label="Orders" value={d.totals.orders} tone="blue" /><Kpi label="Units sold" value={d.totals.units} tone="amber" />
         <Kpi label="Low-stock books" value={d.lowStock.length} tone={d.lowStock.length ? 'red' : 'green'} />
