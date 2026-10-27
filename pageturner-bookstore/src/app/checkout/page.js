@@ -18,6 +18,8 @@ export default function Checkout() {
   const addrs = useFetch(ok ? '/api/addresses' : null);
   const [addressId, setAddressId] = useState(null);
   const [method, setMethod] = useState('upi');
+  const [card, setCard] = useState({ number: '', expiry: '', cvv: '' });
+  const [upi, setUpi] = useState('');
   const [form, setForm] = useState(EMPTY);
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState(null);
@@ -39,7 +41,7 @@ export default function Checkout() {
   async function place() {
     setBusy(true); setErr(null);
     try {
-      const { order } = await post('/api/orders', { addressId, paymentMethod: method });
+      const { order } = await post('/api/orders', { addressId, paymentMethod: method, ...(method === 'card' ? { card } : {}), ...(method === 'upi' ? { upi } : {}) });
       setCartCount(0);
       toast(`Order ${order.order_number} placed!`);
       router.push(`/orders/${order.order_id}`);
@@ -82,8 +84,20 @@ export default function Checkout() {
           </section>
           <section className="card">
             <h2>2 · Payment</h2>
-            <p className="hint">Payment is simulated for this project. No real money moves.</p>
+            <p className="hint">Payments go through a <strong>test gateway</strong>: no real money moves, and your card number is checked and then discarded - only the last 4 digits are kept.</p>
             <div className="chips">{METHODS.map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={method === v} className={`chip ${method === v ? 'active' : ''}`} onClick={() => setMethod(v)}>{l}</button>)}</div>
+            {method === 'card' && (
+              <div className="form-grid" style={{ marginTop: 14 }}>
+                <div className="field"><label htmlFor="cn">Card number</label><input id="cn" inputMode="numeric" autoComplete="cc-number" placeholder="4242 4242 4242 4242" value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} /></div>
+                <div className="field"><label htmlFor="ce">Expiry (MM/YY)</label><input id="ce" autoComplete="cc-exp" placeholder="12/30" value={card.expiry} onChange={(e) => setCard({ ...card, expiry: e.target.value })} /></div>
+                <div className="field"><label htmlFor="cv">CVV</label><input id="cv" type="password" inputMode="numeric" autoComplete="cc-csc" maxLength={4} value={card.cvv} onChange={(e) => setCard({ ...card, cvv: e.target.value })} /></div>
+                <p className="hint">Test cards: 4242 4242 4242 4242 is approved, 4000 0000 0000 0002 is declined.</p>
+              </div>
+            )}
+            {method === 'upi' && (
+              <div className="field" style={{ marginTop: 14 }}><label htmlFor="up">UPI ID</label><input id="up" autoComplete="off" placeholder="name@bank" value={upi} onChange={(e) => setUpi(e.target.value)} /><p className="hint">fail@upi is declined; anything else works.</p></div>
+            )}
+            {method === 'cod' && <p className="hint" style={{ marginTop: 14 }}>Pay in cash when the parcel arrives. (An extra over the SRS, which lists card and UPI.)</p>}
           </section>
         </div>
         <aside className="card">
