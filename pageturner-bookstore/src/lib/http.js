@@ -1,6 +1,7 @@
 // Route-handler wrapper: session lookup, role gate, CSRF guard, JSON errors.
 import { getSession } from './auth.js';
 import { HttpError, toHttpError } from './errors.js';
+import { flushOutbox } from './mailer.js';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -44,6 +45,7 @@ export function api(handler, { roles } = {}) {
       const params = context?.params ? await context.params : {};
       const query = Object.fromEntries(new URL(request.url).searchParams);
       const result = await handler({ request, session, params, query });
+      if (MUTATING.has(request.method)) flushOutbox();   // FR-14: queued e-mails leave right away (not awaited)
       if (result instanceof Response) return result;
       return Response.json(result ?? { ok: true });
     } catch (err) {
