@@ -74,7 +74,7 @@ GRANT EXECUTE ON FUNCTION fn_register_user(TEXT, TEXT, TEXT, TEXT, TEXT),
 GRANT EXECUTE ON PROCEDURE sp_set_rating_summary(BIGINT, NUMERIC, INT) TO bookstore_app;
 
 GRANT EXECUTE ON FUNCTION  fn_cart_totals()            TO bookstore_customer;
-GRANT EXECUTE ON PROCEDURE sp_place_order(BIGINT, TEXT, BIGINT) TO bookstore_customer;
+GRANT EXECUTE ON PROCEDURE sp_place_order(BIGINT, TEXT, BIGINT, TEXT, TEXT) TO bookstore_customer;
 GRANT EXECUTE ON PROCEDURE sp_cancel_order(BIGINT)     TO bookstore_customer;
 
 GRANT EXECUTE ON FUNCTION  fn_upsert_book(BIGINT, TEXT, TEXT, INT, INT, INT, TEXT, TEXT, TEXT[], TEXT, INT) TO bookstore_seller;

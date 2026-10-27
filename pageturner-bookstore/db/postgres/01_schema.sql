@@ -212,6 +212,7 @@ CREATE TABLE payments (
     status          VARCHAR(10) NOT NULL CONSTRAINT ck_pay_status CHECK (status IN ('Paid','Pending','Refunded','Void')),
     transaction_ref VARCHAR(40) NOT NULL UNIQUE
                     DEFAULT ('TXN' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 12))),
+    detail          VARCHAR(40),                      -- masked label only, e.g. 'Card ending 4242' (never full card data)
     paid_at         TIMESTAMPTZ
 );
 

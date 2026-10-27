@@ -148,7 +148,8 @@ $$;
 -- If ANY step raises, the whole transaction rolls back: no half-placed orders.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE sp_place_order(
-    IN p_address_id BIGINT, IN p_payment_method TEXT, INOUT p_order_id BIGINT DEFAULT NULL
+    IN p_address_id BIGINT, IN p_payment_method TEXT, INOUT p_order_id BIGINT DEFAULT NULL,
+    IN p_txn_ref TEXT DEFAULT NULL, IN p_detail TEXT DEFAULT NULL      -- reference returned by the payment gateway (FR-13)
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
@@ -161,6 +162,7 @@ DECLARE
     v_tax     INT;
     v_ship    INT;
     v_total   INT;
+    v_ref     TEXT;
 BEGIN
     IF p_payment_method NOT IN ('card', 'upi', 'cod') THEN
         RAISE EXCEPTION 'unsupported payment method %', p_payment_method USING ERRCODE = '22023';
@@ -212,9 +214,10 @@ BEGIN
       FROM cart_items ci JOIN books b ON b.book_id = ci.book_id
      WHERE ci.user_id = v_user;
 
-    INSERT INTO payments (order_id, method, amount_cents, status, paid_at)
+    v_ref := COALESCE(NULLIF(btrim(p_txn_ref), ''), 'TXN' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 12)));
+    INSERT INTO payments (order_id, method, amount_cents, status, transaction_ref, detail, paid_at)
     VALUES (p_order_id, p_payment_method, v_total,
-            CASE WHEN p_payment_method = 'cod' THEN 'Pending' ELSE 'Paid' END,
+            CASE WHEN p_payment_method = 'cod' THEN 'Pending' ELSE 'Paid' END, v_ref, left(p_detail, 40),
             CASE WHEN p_payment_method = 'cod' THEN NULL ELSE now() END);
 
     DELETE FROM cart_items WHERE user_id = v_user;
