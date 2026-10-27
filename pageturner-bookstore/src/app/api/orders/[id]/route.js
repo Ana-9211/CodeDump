@@ -16,7 +16,7 @@ export const GET = api(async ({ session, params }) => {
       `SELECT order_item_id, book_id, title_snapshot AS title, unit_price_cents, quantity, line_total_cents, fulfilment_status
          FROM order_items WHERE order_id = $1 ORDER BY order_item_id`, [orderId])).rows;
     const [payment] = (await c.query(
-      'SELECT method, status, amount_cents, paid_at, transaction_ref FROM payments WHERE order_id = $1', [orderId])).rows;
+      'SELECT method, status, amount_cents, paid_at, transaction_ref, detail FROM payments WHERE order_id = $1', [orderId])).rows;
     return { order, items, payment: payment ?? null };
   });
   if (!result) throw new HttpError(404, 'Order not found.');
