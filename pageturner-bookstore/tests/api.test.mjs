@@ -687,4 +687,14 @@ describe('SE requirements closed in the merged app', () => {
     const cod = await buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'cod' });
     assert.equal(cod.json.payment.status, 'Pending');
   });
+
+  test('FR-23/28 reports honour a custom date range; best sellers list up to 10', async () => {
+    const admin = await as('admin@bookstore.test'), seller = await as('seller1@bookstore.test');
+    const r = (await admin.get('/api/admin/report?from=2026-01-01&to=2026-01-10')).json;
+    assert.equal(r.report.length, 10); assert.equal(r.from, '2026-01-01');
+    assert.ok(r.topBooks.length <= 10);
+    assert.equal((await seller.get('/api/seller/report?from=2026-02-10&to=2026-02-01')).status, 400, 'start after end');
+    assert.equal((await seller.get('/api/seller/report?from=2024-01-01&to=2026-01-01')).status, 400, 'more than a year');
+    assert.equal((await seller.get('/api/seller/report?from=2026-02-01&to=2026-02-05')).json.report.length, 5);
+  });
 });
