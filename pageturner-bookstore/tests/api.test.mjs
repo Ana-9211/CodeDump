@@ -410,7 +410,9 @@ describe('MongoDB features over HTTP', async () => {
       assert.equal((await cust.post(`/api/books/${id}/reviews`, { rating: 5, body: 'Lovely' })).status, 403, 'not bought yet');
       await cust.post('/api/cart', { bookId: id, quantity: 1 });
       const addr = (await cust.get('/api/addresses')).json.items[0];
-      await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card' });
+      const placed = (await cust.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'card' })).json.order;
+      assert.equal((await cust.post(`/api/books/${id}/reviews`, { rating: 5, body: 'Too early' })).status, 403, 'FR-17: paid but not delivered yet');
+      for (const st of ['Packed', 'Shipped', 'Delivered']) await db.query('UPDATE order_items SET fulfilment_status=$1 WHERE order_id=$2', [st, placed.order_id]);
       const made = await cust.post(`/api/books/${id}/reviews`, { rating: 5, title: 'Classic', body: 'There and back again.' });
       assert.equal(made.status, 200, JSON.stringify(made.json));
       assert.equal((await cust.post(`/api/books/${id}/reviews`, { rating: 1, body: 'again' })).status, 409);
@@ -583,5 +585,67 @@ describe('features merged from the SE backlog', () => {
     assert.ok(mid.items.every((b) => b.price_cents >= 30000 && b.price_cents <= 50000));
     assert.equal((await new Client().get('/api/books?minRating=9')).status, 400);
     assert.equal((await new Client().get("/api/books?minPrice=1;DROP TABLE books")).status, 400);
+  });
+});
+
+describe('SE requirements closed in the merged app', () => {
+  test('FR-01 e-mail verification: new accounts start unverified, the link verifies once', async () => {
+    const crypto = await import('node:crypto');
+    const c = new Client();
+    const reg = await c.post('/api/auth/register', { name: 'Vera Fy', email: 'vera@x.test', password: 'Passw0rd!x', role: 'customer' });
+    assert.equal(reg.status, 200);
+    assert.equal(reg.json.user.emailVerified, false);
+    assert.equal((await c.get('/api/auth/me')).json.user.emailVerified, false);
+    assert.equal((await c.post('/api/auth/verify', { token: 'f'.repeat(64) })).status, 400, 'unknown token');
+    const token = crypto.randomBytes(32).toString('hex');
+    const uid = (await db.query("SELECT user_id FROM users WHERE email='vera@x.test'")).rows[0].user_id;
+    await db.query('SELECT * FROM fn_create_email_verification($1, $2)', [uid, crypto.createHash('sha256').update(token).digest('hex')]);
+    assert.equal((await c.post('/api/auth/verify', { token })).status, 200);
+    assert.equal((await c.post('/api/auth/verify', { token })).status, 400, 'link works once');
+    assert.equal((await c.get('/api/auth/me')).json.user.emailVerified, true);
+    assert.equal((await new Client().get('/api/auth/me')).json.user, null);
+    assert.equal((await new Client().post('/api/auth/resend-verification')).status, 401);
+    const seeded = await as('customer1@bookstore.test');
+    assert.equal(seeded.user.emailVerified, true, 'demo users are pre-verified');
+  });
+
+  test('FR-14 queued notification e-mails are sent within seconds of the action', async () => {
+    const buyer = await as('customer2@bookstore.test');
+    const id = await bookId('The Hobbit');
+    await buyer.post('/api/cart', { bookId: id, quantity: 1 });
+    const addr = (await buyer.get('/api/addresses')).json.items[0];
+    const o = (await buyer.post('/api/orders', { addressId: addr.address_id, paymentMethod: 'cod' })).json.order;
+    const uid = (await db.query("SELECT user_id FROM users WHERE email='customer2@bookstore.test'")).rows[0].user_id;
+    let status;
+    for (let i = 0; i < 20; i++) {
+      status = (await db.query("SELECT email_status FROM notifications WHERE user_id=$1 AND link LIKE $2 ORDER BY notification_id DESC LIMIT 1", [uid, `%${o.order_id}%`])).rows[0]?.email_status;
+      if (status === 'sent') break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    assert.equal(status, 'sent');
+  });
+
+  test('FR-21 the seller is alerted once when stock falls to their own alert level', async () => {
+    const seller = await as('seller1@bookstore.test');
+    const row = (await db.query("SELECT book_id, seller_id, stock FROM books WHERE seller_id=(SELECT user_id FROM users WHERE email='seller1@bookstore.test') AND status='approved' AND stock >= 3 LIMIT 1")).rows[0];
+    await db.query('UPDATE books SET low_stock_threshold=$2, stock=$3 WHERE book_id=$1', [row.book_id, 2, 3]);
+    const count = async () => (await db.query("SELECT count(*)::int n FROM notifications WHERE user_id=$1 AND kind='low_stock'", [row.seller_id])).rows[0].n;
+    const before = await count();
+    await db.query('UPDATE books SET stock=2 WHERE book_id=$1', [row.book_id]);
+    assert.equal(await count(), before + 1, 'alert on crossing');
+    await db.query('UPDATE books SET stock=1 WHERE book_id=$1', [row.book_id]);
+    assert.equal(await count(), before + 1, 'no repeat while already low');
+    assert.ok((await seller.get('/api/notifications')).json.items.some((n) => n.kind === 'low_stock'));
+  });
+
+  test('FR-07/20/21 sellers can set a cover image URL and alert level; bad URLs are refused', async () => {
+    const seller = await as('seller1@bookstore.test');
+    const base = { title: 'Cover Test Book', isbn: '9780306406157', description: 'A book for the cover test.', price: 199, stock: 10, categoryId: 1, language: 'English', authors: 'Cover Tester' };
+    const bad = await seller.post('/api/seller/books', { ...base, coverUrl: 'javascript:alert(1)' });
+    assert.equal(bad.status, 400);
+    const ok = await seller.post('/api/seller/books', { ...base, coverUrl: 'https://example.com/c.jpg', lowStock: 7 });
+    assert.equal(ok.status, 200, JSON.stringify(ok.json));
+    const row = (await db.query("SELECT cover_url, low_stock_threshold FROM books WHERE title='Cover Test Book'")).rows[0];
+    assert.deepEqual(row, { cover_url: 'https://example.com/c.jpg', low_stock_threshold: 7 });
   });
 });
