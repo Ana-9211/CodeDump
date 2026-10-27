@@ -556,6 +556,24 @@ describe('features merged from the SE backlog', () => {
     assert.ok(a.actor_id, 'the admin who made the change is recorded');
   });
 
+  test('FR-04 the catalogue shows 20 books per page by default', async () => {
+    const r = (await new Client().get('/api/books')).json;
+    assert.equal(r.limit, 20);
+    assert.equal(r.items.length, 20);
+    assert.ok(r.total > 20 && r.pages >= 2);
+  });
+
+  test('FR-06 language filter', async () => {
+    const g = new Client();
+    const langs = (await g.get('/api/languages')).json.items;
+    assert.ok(langs.some((l) => l.language === 'English'));
+    await db.query("UPDATE books SET language = 'Hindi' WHERE title = 'Matilda'");
+    const hindi = (await g.get('/api/books?language=Hindi')).json;
+    assert.deepEqual(hindi.items.map((b) => b.title), ['Matilda']);
+    assert.ok((await g.get('/api/languages')).json.items.some((l) => l.language === 'Hindi'));
+    await db.query("UPDATE books SET language = 'English' WHERE title = 'Matilda'");
+  });
+
   test('FR-06 price and rating filters', async () => {
     const all = (await new Client().get('/api/books?limit=40')).json;
     const cheap = (await new Client().get('/api/books?limit=40&maxPrice=300')).json;
