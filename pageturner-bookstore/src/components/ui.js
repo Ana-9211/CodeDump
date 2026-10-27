@@ -10,7 +10,6 @@ export function BookCover({ title, authors, id = 0, size, src }) {
   const h = HUES[Number(id) % HUES.length];
   const [broken, setBroken] = useState(false);
   if (src && !broken) {
-    // eslint-disable-next-line @next/next/no-img-element
     return <img className={`cover cover-img ${size ?? ''}`} src={src} alt={`Cover of ${title}`} loading="lazy" onError={() => setBroken(true)} />;
   }
   return (
