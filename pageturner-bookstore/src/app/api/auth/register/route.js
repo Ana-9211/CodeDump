@@ -1,6 +1,7 @@
 import { api, readJson } from '@/lib/http.js';
 import { asApp } from '@/lib/db.js';
 import { hashPassword, startSession } from '@/lib/auth.js';
+import { sendVerification } from '@/lib/verify.js';
 import { email, objectBody, oneOf, password, str } from '@/lib/validate.js';
 
 // Sign-up: creates a customer or a seller. Admins can never be self-registered
@@ -15,5 +16,6 @@ export const POST = api(async ({ request }) => {
 
   const [{ id }] = await asApp('SELECT fn_register_user($1, $2, $3, $4, $5) AS id', [name, mail, await hashPassword(pw), role, storeName]);
   await startSession({ userId: id, role });
-  return { user: { userId: id, role, name } };
+  const devLink = await sendVerification(id);        // FR-01
+  return { user: { userId: id, role, name, emailVerified: false }, ...(devLink ? { devVerifyLink: devLink } : {}) };
 });
