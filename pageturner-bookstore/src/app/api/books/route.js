@@ -14,7 +14,7 @@ const SORTS = {
 // Every value reaches SQL as a bound parameter ($1, $2 ...), never by string concatenation.
 export const GET = api(async ({ session, query }) => {
   const page = int(query.page ?? 1, 'Page', { min: 1, max: 10000 });
-  const limit = int(query.limit ?? 12, 'Page size', { min: 1, max: 40 });
+  const limit = int(query.limit ?? 20, 'Page size', { min: 1, max: 40 });
   const sort = oneOf(query.sort ?? 'newest', 'Sort', Object.keys(SORTS));
 
   const params = [];
@@ -31,6 +31,7 @@ export const GET = api(async ({ session, query }) => {
     where.push(`category_id IN (SELECT category_id FROM fn_category_tree(${bind(int(query.category, 'Category', { min: 1 }))}))`);
   }
   if (query.inStock === '1') where.push('stock > 0');
+  if (query.language) where.push(`language = ${bind(str(query.language, 'Language', { max: 30 }))}`);
   // FR-06: price range (rupees in the URL, paise in the database) and minimum rating
   if (query.minPrice) where.push(`price_cents >= ${bind(Math.round(int(query.minPrice, 'Minimum price', { min: 0, max: 10000000 }) * 100))}`);
   if (query.maxPrice) where.push(`price_cents <= ${bind(Math.round(int(query.maxPrice, 'Maximum price', { min: 0, max: 10000000 }) * 100))}`);

@@ -18,15 +18,18 @@ function Catalog() {
   const minPrice = sp.get('minPrice') ?? '';
   const maxPrice = sp.get('maxPrice') ?? '';
   const minRating = sp.get('minRating') ?? '';
+  const language = sp.get('language') ?? '';
+  const langs = useFetch('/api/languages');
   const [price, setPrice] = useState({ min: minPrice, max: maxPrice });
 
-  const qs = new URLSearchParams({ page, limit: 12, sort });
+  const qs = new URLSearchParams({ page, limit: 20, sort });
   if (q) qs.set('q', q);
   if (category) qs.set('category', category);
   if (inStock) qs.set('inStock', '1');
   if (minPrice) qs.set('minPrice', minPrice);
   if (maxPrice) qs.set('maxPrice', maxPrice);
   if (minRating) qs.set('minRating', minRating);
+  if (language) qs.set('language', language);
   const books = useFetch(`/api/books?${qs}`);
   const cats = useFetch('/api/categories');
 
@@ -69,6 +72,13 @@ function Catalog() {
           <input aria-label="Maximum price" type="number" min="0" placeholder="Max" value={price.max} onChange={(e) => setPrice({ ...price, max: e.target.value })} />
           <button className="btn sm">Go</button>
         </form>
+        <hr className="divider" />
+        <h3>Language</h3>
+        <label htmlFor="lang" className="sr-only">Language</label>
+        <select id="lang" value={language} onChange={(e) => go({ language: e.target.value })}>
+          <option value="">Any language</option>
+          {langs.data?.items.map((l) => <option key={l.language} value={l.language}>{l.language} ({l.n})</option>)}
+        </select>
         <hr className="divider" />
         <h3>Rating</h3>
         <div className="chips">{['', '4', '3'].map((r) => <button key={r} className={`chip ${minRating === r ? 'active' : ''}`} onClick={() => go({ minRating: r })}>{r ? `${r}★ & up` : 'Any'}</button>)}</div>
