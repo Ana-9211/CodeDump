@@ -30,6 +30,17 @@ export async function closeMongo() {
   }
 }
 
+/** 'up' | 'down' for the health probe. A failed connection attempt is forgotten so MongoDB can come back later. */
+export async function mongoStatus() {
+  try {
+    const db = await Promise.race([getMongoDb().then((d) => d.command({ ping: 1 })), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500))]);
+    return db ? 'up' : 'down';
+  } catch {
+    g.__bookstoreMongo = undefined;
+    return 'down';
+  }
+}
+
 export const reviewsCollection = async () => (await getMongoDb()).collection('reviews');
 export const viewsCollection = async () => (await getMongoDb()).collection('book_views');
 
