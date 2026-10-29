@@ -71,7 +71,7 @@ async function main() {
     if (!skipDemo) {
       await seedDemoUsers(db);
       await db.query(sql('07_seed_catalog.sql'));
-      say('Ran 07_seed_catalog.sql (36 sample books)');
+      say('Ran 07_seed_catalog.sql (sample fantasy catalogue: approved, pending and rejected books)');
     }
   }
   await db.end();
@@ -98,7 +98,7 @@ async function seedDemoUsers(db) {
   const users = [
     ['Asha Admin',  'admin@bookstore.test',     'admin',    null],
     ['Ravi Menon',  'seller1@bookstore.test',   'seller',   'Page Turner Books'],
-    ['Divya Rao',   'seller2@bookstore.test',   'seller',   'Campus Corner'],
+    ['Divya Rao',   'seller2@bookstore.test',   'seller',   'The Lantern Shelf'],
     ['Karan Shah',  'customer1@bookstore.test', 'customer', null],
     ['Meera Iyer',  'customer2@bookstore.test', 'customer', null],
   ];
