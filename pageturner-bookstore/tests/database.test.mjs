@@ -27,17 +27,17 @@ after(async () => { await admin.end(); await pool.end(); });
 
 describe('1. constraints keep bad data out (even for a superuser)', () => {
   test('price must be positive', async () => {
-    await assert.rejects(admin.query("UPDATE books SET price_cents = 0 WHERE title = 'Dune'"), code('23514'));
+    await assert.rejects(admin.query("UPDATE books SET price_cents = 0 WHERE title = 'Coraline'"), code('23514'));
   });
   test('stock cannot go negative', async () => {
-    await assert.rejects(admin.query("UPDATE books SET stock = -1 WHERE title = 'Dune'"), code('23514'));
+    await assert.rejects(admin.query("UPDATE books SET stock = -1 WHERE title = 'Coraline'"), code('23514'));
   });
   test('e-mail must be unique, case-insensitively', async () => {
     await assert.rejects(
       admin.query("INSERT INTO users (name,email,password_hash,role_id) VALUES ('x','CUSTOMER1@bookstore.test','h',1)"), code('23505'));
   });
   test('ISBN format is enforced', async () => {
-    await assert.rejects(admin.query("UPDATE books SET isbn = 'abc' WHERE title = 'Dune'"), code('23514'));
+    await assert.rejects(admin.query("UPDATE books SET isbn = 'abc' WHERE title = 'Coraline'"), code('23514'));
   });
   test('order total must equal subtotal + tax + shipping', async () => {
     await assert.rejects(admin.query(`INSERT INTO orders (user_id, ship_full_name, ship_line1, ship_city, ship_state, ship_postal_code, ship_country, ship_phone,
@@ -48,24 +48,24 @@ describe('1. constraints keep bad data out (even for a superuser)', () => {
        VALUES (${U['customer1@bookstore.test'].userId}, 'a','b','c','d','560001','9999999', true)`), code('23505'));
   });
   test('a category cannot be its own parent; root names are unique', async () => {
-    await assert.rejects(admin.query('UPDATE categories SET parent_id = category_id WHERE name = $1', ['Fantasy']), code('23514'));
-    await assert.rejects(admin.query("INSERT INTO categories (name, parent_id) VALUES ('Fiction', NULL)"), code('23505'));
+    await assert.rejects(admin.query('UPDATE categories SET parent_id = category_id WHERE name = $1', ['Wonderlands']), code('23514'));
+    await assert.rejects(admin.query("INSERT INTO categories (name, parent_id) VALUES ('Portal Worlds', NULL)"), code('23505'));
   });
   test('a customer cannot own books (trigger)', async () => {
-    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Fantasy'")).rows[0].category_id;
+    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Wonderlands'")).rows[0].category_id;
     await assert.rejects(admin.query(`INSERT INTO books (seller_id, category_id, isbn, title, price_cents, stock)
        VALUES (${U['customer1@bookstore.test'].userId}, ${cat}, '9780000000002', 'Nope', 100, 1)`), code('23514'));
   });
   test('a rejected book needs a reason', async () => {
-    await assert.rejects(admin.query("UPDATE books SET status='rejected', rejection_reason = NULL WHERE title = 'Dune'"), code('23514'));
+    await assert.rejects(admin.query("UPDATE books SET status='rejected', rejection_reason = NULL WHERE title = 'Coraline'"), code('23514'));
   });
 });
 
 describe('2. cart rules and checkout procedure', () => {
   test('cart quantity cannot exceed stock (trigger)', async () => {
-    const neuro = await bookByTitle('Neuromancer');                 // only 4 in stock
-    await assert.rejects(addToCart('customer1@bookstore.test', neuro.book_id, 5), /only 4 copies of "Neuromancer" in stock/);
-    await assert.rejects(addToCart('customer1@bookstore.test', (await bookByTitle('Quick Guide to NoSQL')).book_id, 1), code('55000')); // not approved
+    const neuro = await bookByTitle('The Last Unicorn');                 // only 4 in stock
+    await assert.rejects(addToCart('customer1@bookstore.test', neuro.book_id, 5), /only 4 copies of "The Last Unicorn" in stock/);
+    await assert.rejects(addToCart('customer1@bookstore.test', (await bookByTitle('Quick Spells for Busy Wizards')).book_id, 1), code('55000')); // not approved
   });
 
   test('fn_cart_totals applies tax and the free-shipping threshold', async () => {
@@ -102,21 +102,21 @@ describe('2. cart rules and checkout procedure', () => {
 
   test('empty cart and foreign address are rejected', async () => {
     await assert.rejects(place('customer2@bookstore.test'), /cart is empty/);
-    await addToCart('customer2@bookstore.test', (await bookByTitle('Dune')).book_id, 1);
+    await addToCart('customer2@bookstore.test', (await bookByTitle('Coraline')).book_id, 1);
     const otherAddr = await addrOf('customer1@bookstore.test');
     await assert.rejects(
       as('customer2@bookstore.test', (c) => c.query('CALL sp_place_order($1::bigint,$2::text,NULL::bigint)', [otherAddr, 'card'])), code('P0002'));
   });
 
   test('a failing line rolls the WHOLE order back (atomicity)', async () => {
-    // customer2 cart: Dune (ok) + Neuromancer x3 ; then someone else buys 2 of Neuromancer first
-    const neuro = await bookByTitle('Neuromancer');          // stock 4
+    // customer2 cart: Coraline (ok) + The Last Unicorn x3 ; then someone else buys 2 of The Last Unicorn first
+    const neuro = await bookByTitle('The Last Unicorn');          // stock 4
     await addToCart('customer2@bookstore.test', neuro.book_id, 3);
     await admin.query('UPDATE books SET stock = 2 WHERE book_id = $1', [neuro.book_id]);   // stock vanished meanwhile
-    const duneBefore = (await bookByTitle('Dune')).stock;
+    const stardustBefore = (await bookByTitle('Coraline')).stock;
     const ordersBefore = (await admin.query('SELECT count(*)::int n FROM orders')).rows[0].n;
-    await assert.rejects(place('customer2@bookstore.test'), /only 2 copies of "Neuromancer"/);
-    assert.equal((await bookByTitle('Dune')).stock, duneBefore, 'Dune stock untouched');
+    await assert.rejects(place('customer2@bookstore.test'), /only 2 copies of "The Last Unicorn"/);
+    assert.equal((await bookByTitle('Coraline')).stock, stardustBefore, 'Coraline stock untouched');
     assert.equal((await admin.query('SELECT count(*)::int n FROM orders')).rows[0].n, ordersBefore, 'no partial order');
     assert.equal((await admin.query('SELECT count(*)::int n FROM cart_items WHERE user_id=$1', [U['customer2@bookstore.test'].userId])).rows[0].n, 2, 'cart kept');
     await admin.query('DELETE FROM cart_items WHERE user_id = $1', [U['customer2@bookstore.test'].userId]);
@@ -124,24 +124,24 @@ describe('2. cart rules and checkout procedure', () => {
   });
 
   test('two customers racing for the last copy: exactly one wins (row locks)', async () => {
-    const book = await bookByTitle('Linear Algebra Done Right');
+    const book = await bookByTitle('Redwall');
     await admin.query('UPDATE books SET stock = 1 WHERE book_id = $1', [book.book_id]);
     await addToCart('customer1@bookstore.test', book.book_id, 1);
     await addToCart('customer2@bookstore.test', book.book_id, 1);
     const results = await Promise.allSettled([place('customer1@bookstore.test'), place('customer2@bookstore.test')]);
     const ok = results.filter((r) => r.status === 'fulfilled').length;
     assert.equal(ok, 1, 'exactly one order succeeds');
-    assert.equal((await bookByTitle('Linear Algebra Done Right')).stock, 0, 'stock is 0, never negative');
+    assert.equal((await bookByTitle('Redwall')).stock, 0, 'stock is 0, never negative');
     await admin.query('DELETE FROM cart_items');
-    await admin.query('UPDATE books SET stock = 6 WHERE book_id = $1', [book.book_id]);
+    await admin.query('UPDATE books SET stock = 15 WHERE book_id = $1', [book.book_id]);
   });
 });
 
 describe('3. fulfilment workflow, cancellation and audit triggers', () => {
-  let orderId, itemId, dune;
+  let orderId, itemId, stardust;
   test('seller advances status; illegal jumps are blocked; order status rolls up', async () => {
-    dune = await bookByTitle('Dune');
-    await addToCart('customer1@bookstore.test', dune.book_id, 2);
+    stardust = await bookByTitle('Coraline');
+    await addToCart('customer1@bookstore.test', stardust.book_id, 2);
     orderId = await place('customer1@bookstore.test', 'cod');
     itemId = (await admin.query('SELECT order_item_id FROM order_items WHERE order_id=$1', [orderId])).rows[0].order_item_id;
     const set = (status) => as('seller1@bookstore.test', (c) => c.query('UPDATE order_items SET fulfilment_status=$2 WHERE order_item_id=$1', [itemId, status]));
@@ -160,12 +160,12 @@ describe('3. fulfilment workflow, cancellation and audit triggers', () => {
   });
 
   test('cancel restores stock, refunds payment, rolls order up; shipped orders cannot be cancelled', async () => {
-    const before = (await bookByTitle('Dune')).stock;
-    await addToCart('customer1@bookstore.test', dune.book_id, 3);
+    const before = (await bookByTitle('Coraline')).stock;
+    await addToCart('customer1@bookstore.test', stardust.book_id, 3);
     const id2 = await place('customer1@bookstore.test', 'card');
-    assert.equal((await bookByTitle('Dune')).stock, before - 3);
+    assert.equal((await bookByTitle('Coraline')).stock, before - 3);
     await as('customer1@bookstore.test', (c) => c.query('CALL sp_cancel_order($1::bigint)', [id2]));
-    assert.equal((await bookByTitle('Dune')).stock, before, 'stock returned');
+    assert.equal((await bookByTitle('Coraline')).stock, before, 'stock returned');
     const o = (await admin.query('SELECT status, cancelled_at FROM orders WHERE order_id=$1', [id2])).rows[0];
     assert.equal(o.status, 'Cancelled'); assert.ok(o.cancelled_at);
     assert.equal((await admin.query('SELECT status FROM payments WHERE order_id=$1', [id2])).rows[0].status, 'Refunded');
@@ -175,7 +175,7 @@ describe('3. fulfilment workflow, cancellation and audit triggers', () => {
   });
 
   test('moderation and suspension are written to audit_log', async () => {
-    const pending = await bookByTitle('Practical PostgreSQL Tuning');
+    const pending = await bookByTitle("A Beginner's Guide to Dragon Husbandry");
     await as('admin@bookstore.test', (c) => c.query("UPDATE books SET status='approved' WHERE book_id=$1", [pending.book_id]));
     await as('admin@bookstore.test', (c) => c.query("UPDATE users SET status='suspended' WHERE email='customer2@bookstore.test'"));
     await as('admin@bookstore.test', (c) => c.query("UPDATE users SET status='active' WHERE email='customer2@bookstore.test'"));
@@ -190,7 +190,7 @@ describe('3. fulfilment workflow, cancellation and audit triggers', () => {
 
 describe('4. seller functions', () => {
   test('fn_upsert_book creates a pending book with ordered authors; edits keep ownership', async () => {
-    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Computer Science'")).rows[0].category_id;
+    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Tea & Spells'")).rows[0].category_id;
     const id = (await as('seller2@bookstore.test', (c) => c.query('SELECT fn_upsert_book(NULL, $1, $2, $3, $4, $5, $6, $7, $8) AS id',
       ['SQL Antipatterns', '978-1-93435-655-5', cat, 3999 * 10, 7, 'Avoiding the pitfalls', 'English', ['Bill Karwin', 'Co Author']]))).rows[0].id;
     const b = (await bookByTitle('SQL Antipatterns'));
@@ -237,7 +237,7 @@ describe('5. role-based access control inside PostgreSQL', () => {
   });
   test('seller: sees own pending books but not a rival\'s; no payments; no direct book writes', async () => {
     const mine = (await as('seller2@bookstore.test', (c) => c.query("SELECT title FROM books WHERE status IN ('pending','rejected') ORDER BY title"))).rows.map((r) => r.title);
-    assert.deepEqual(mine, ['Quick Guide to NoSQL']);        // seller2's rejected; 'Practical PostgreSQL Tuning' approved earlier
+    assert.deepEqual(mine, ['Quick Spells for Busy Wizards']);        // seller2's rejected; the Dragon Husbandry listing was approved earlier
     const rival = (await as('seller1@bookstore.test', (c) => c.query("SELECT title FROM books WHERE status IN ('pending','rejected')"))).rows;
     assert.deepEqual(rival, [], 'seller1 has none and cannot see seller2\'s');
     await assert.rejects(as('seller1@bookstore.test', (c) => c.query('SELECT * FROM payments')), code('42501'));
@@ -247,7 +247,7 @@ describe('5. role-based access control inside PostgreSQL', () => {
   test('same report function, different rows per role (RLS on the invoker)', async () => {
     const rep = (email) => as(email, (c) => c.query("SELECT sum(revenue_cents)::int AS r FROM fn_sales_report(current_date - 1, current_date)")).then((x) => x.rows[0].r);
     const s1 = await rep('seller1@bookstore.test'), s2 = await rep('seller2@bookstore.test'), a = await rep('admin@bookstore.test');
-    assert.ok(s1 > 0, 'seller1 sold Hobbit/Dune');
+    assert.ok(s1 > 0, 'seller1 sold Hobbit/Coraline');
     assert.equal(a, s1 + s2, 'admin total = sum of sellers');
   });
   test('admin: moderates and suspends others but not themselves; all roles can read the category tree', async () => {
@@ -268,17 +268,17 @@ describe('5. role-based access control inside PostgreSQL', () => {
 describe('6. queries', () => {
   test('recursive category tree: depth, path and subtree totals', async () => {
     const rows = (await as('customer1@bookstore.test', (c) => c.query('SELECT * FROM fn_category_tree()'))).rows;
-    const cs = rows.find((r) => r.name === 'Computer Science');
-    assert.equal(cs.depth, 2); assert.equal(cs.path, 'Non-Fiction > Science > Computer Science');
-    const science = rows.find((r) => r.name === 'Science');
-    assert.equal(science.subtree_books, science.direct_books + rows.filter((r) => r.parent_id === science.category_id).reduce((s, r) => s + r.subtree_books, 0));
-    const sub = (await as('customer1@bookstore.test', (c) => c.query("SELECT name FROM fn_category_tree((SELECT category_id FROM categories WHERE name='Academic'))"))).rows.map((r) => r.name);
-    assert.deepEqual(sub.sort(), ['Academic', 'Engineering', 'Mathematics']);
+    const cs = rows.find((r) => r.name === 'Sky & Stars');
+    assert.equal(cs.depth, 2); assert.equal(cs.path, 'Fairy Tales & Retellings > Enchanted Lands > Sky & Stars');
+    const enchanted = rows.find((r) => r.name === 'Enchanted Lands');
+    assert.equal(enchanted.subtree_books, enchanted.direct_books + rows.filter((r) => r.parent_id === enchanted.category_id).reduce((s, r) => s + r.subtree_books, 0));
+    const sub = (await as('customer1@bookstore.test', (c) => c.query("SELECT name FROM fn_category_tree((SELECT category_id FROM categories WHERE name='Portal Worlds'))"))).rows.map((r) => r.name);
+    assert.deepEqual(sub.sort(), ['Dark Whimsy', 'Funny Fantasy', 'Portal Worlds', 'Timeless Tales', 'Wonderlands']);
   });
   test('catalogue view joins authors, category and store; full-text search works', async () => {
-    const r = (await withRole(null, (c) => c.query("SELECT authors, category_name, store_name FROM v_book_catalog WHERE title = 'Introduction to Algorithms'"))).rows[0];
-    assert.equal(r.authors, 'Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein');
-    assert.equal(r.category_name, 'Computer Science'); assert.equal(r.store_name, 'Campus Corner');
+    const r = (await withRole(null, (c) => c.query("SELECT authors, category_name, store_name FROM v_book_catalog WHERE title = 'Good Omens'"))).rows[0];
+    assert.equal(r.authors, 'Terry Pratchett, Neil Gaiman');
+    assert.equal(r.category_name, 'Funny Fantasy'); assert.equal(r.store_name, 'Page Turner Books');
     const fts = (await withRole(null, (c) => c.query("SELECT title FROM v_book_catalog WHERE search_vector @@ websearch_to_tsquery('english', 'wizard magic')"))).rows.map((x) => x.title);
     assert.ok(fts.includes("Harry Potter and the Philosopher's Stone"));
   });
