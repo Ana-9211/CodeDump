@@ -11,10 +11,10 @@ SELECT b.title, c.name AS category, b.price_cents / 100.0 AS price
    AND b.price_cents > (SELECT avg(price_cents) FROM books WHERE category_id = b.category_id AND status = 'approved')
  ORDER BY c.name, price DESC LIMIT 10;
 
-\echo '--- 2. NESTED with IN: customers who bought anything from "Campus Corner"'
+\echo '--- 2. NESTED with IN: customers who bought anything from "The Lantern Shelf"'
 SELECT DISTINCT u.name FROM users u
  WHERE u.user_id IN (SELECT o.user_id FROM orders o JOIN order_items oi USING (order_id)
-                      WHERE oi.seller_id = (SELECT user_id FROM seller_profiles WHERE store_name = 'Campus Corner'));
+                      WHERE oi.seller_id = (SELECT user_id FROM seller_profiles WHERE store_name = 'The Lantern Shelf'));
 
 \echo '--- 3. CORRELATED: the most expensive approved book of every category'
 SELECT c.name, b.title, b.price_cents / 100.0 AS price
