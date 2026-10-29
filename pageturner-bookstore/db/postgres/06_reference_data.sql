@@ -14,19 +14,20 @@ INSERT INTO app_settings (setting_key, setting_value, description) VALUES
 
 -- Level 1 (roots)
 INSERT INTO categories (name, parent_id) VALUES
-    ('Fiction', NULL), ('Non-Fiction', NULL), ('Academic', NULL), ('Children', NULL);
+    ('Portal Worlds', NULL), ('Fairy Tales & Retellings', NULL), ('Cozy Magic', NULL), ('Little Dreamers', NULL);
 
 -- Level 2
 INSERT INTO categories (name, parent_id)
 SELECT v.name, p.category_id
-  FROM (VALUES ('Fantasy','Fiction'), ('Science Fiction','Fiction'), ('Mystery & Thriller','Fiction'),
-               ('Classics','Fiction'), ('Science','Non-Fiction'), ('Biography & Memoir','Non-Fiction'),
-               ('Self-Help','Non-Fiction'), ('Engineering','Academic'), ('Mathematics','Academic'))
+  FROM (VALUES ('Wonderlands','Portal Worlds'), ('Funny Fantasy','Portal Worlds'), ('Dark Whimsy','Portal Worlds'),
+               ('Timeless Tales','Portal Worlds'), ('Enchanted Lands','Fairy Tales & Retellings'),
+               ('Myth Retold','Fairy Tales & Retellings'), ('Folk & Fable','Fairy Tales & Retellings'),
+               ('Tea & Spells','Cozy Magic'), ('Witches & Wizards','Cozy Magic'))
        AS v(name, parent)
   JOIN categories p ON p.name = v.parent AND p.parent_id IS NULL;
 
 -- Level 3
 INSERT INTO categories (name, parent_id)
 SELECT v.name, p.category_id
-  FROM (VALUES ('Physics','Science'), ('Computer Science','Science')) AS v(name, parent)
+  FROM (VALUES ('Sky & Stars','Enchanted Lands'), ('Hidden Realms','Enchanted Lands')) AS v(name, parent)
   JOIN categories p ON p.name = v.parent;
