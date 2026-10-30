@@ -12,7 +12,7 @@
 Run one suite: `node --test tests/api.test.mjs`. Tests that need MongoDB are skipped when port 27017 is closed.
 
 ## Manual demo script (5 minutes)
-1. Guest browses, searches "dune", filters price ≤ ₹300.
+1. Guest lands on the bookshelf, scrolls to load more rows, searches "stardust", opens a category chip, filters price ≤ ₹300.
 2. Register as customer → add two books → checkout (UPI) → open the order, watch the notification bell.
 3. Sign in as `seller1` → Orders → mark the line *Packed → Shipped*; see the customer's notification.
 4. Sign in as `admin` → approve the pending book, view the audit log entry it created.
