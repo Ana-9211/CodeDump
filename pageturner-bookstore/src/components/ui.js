@@ -5,17 +5,21 @@ import { useRouter } from 'next/navigation';
 import { useApp } from './Providers.js';
 import { money } from '@/lib/client.js';
 
-const HUES = [152, 24, 204, 340, 38, 268, 176, 8];
-export function BookCover({ title, authors, id = 0, size, src }) {
-  const h = HUES[Number(id) % HUES.length];
+/** A real cover_url is shown as an image (lazy-loaded). Without one the book gets a plain text tile that says so:
+ *  it is a stand-in, never drawn artwork, and the cover is listed for review (see docs/assets.md). */
+export function BookCover({ title, authors, src, size, priority = false }) {
   const [broken, setBroken] = useState(false);
   if (src && !broken) {
-    return <img className={`cover cover-img ${size ?? ''}`} src={src} alt={`Cover of ${title}`} loading="lazy" onError={() => setBroken(true)} />;
+    return (
+      <img className={`cover cover-img ${size ?? ''}`} src={src} alt={`Cover of ${title}`} width="200" height="300"
+        loading={priority ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken(true)} />
+    );
   }
   return (
-    <div className={`cover ${size ?? ''}`} style={{ background: `linear-gradient(155deg, hsl(${h} 42% 30%), hsl(${h} 46% 18%))` }} aria-hidden="true">
+    <div className={`cover pending ${size ?? ''}`} role="img" aria-label={`${title} by ${authors || 'unknown author'}. Cover image not added yet.`}>
       <div className="c-title">{title}</div>
       <div className="c-author">{authors}</div>
+      <div className="c-note">cover pending</div>
     </div>
   );
 }
