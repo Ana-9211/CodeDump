@@ -114,6 +114,7 @@ no SQL text ever sent to the browser · security headers · password-reset token
 card data are never logged (payments are simulated).
 
 ## ⚠️ Honest limits
+* Book covers and the bookshelf decorations are **not finished**: books without a `cover_url` show a plain "cover pending" tile and the shelf wood is flat colour. Real, licensed assets are tracked in [docs/assets.md](docs/assets.md).
 * Payments and e-mail are **simulated** (no gateway, no SMTP). Reset links are always printed on the server console (the terminal running the app). They are also shown on the page when you run `npm run dev`, never under `npm start`.
 * MongoDB features were unit-tested against an in-memory engine in the development sandbox; run `npm run nosql:demo` and the full `npm test` with a real `mongod` to see them live (CI does this).
 
