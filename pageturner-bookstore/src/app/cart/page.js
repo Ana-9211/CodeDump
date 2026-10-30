@@ -31,7 +31,7 @@ export default function CartPage() {
           <div className="card">
             {d.items.map((i) => (
               <div key={i.book_id} className="row" style={{ padding: '12px 0', borderBottom: '1px solid var(--line)', alignItems: 'flex-start' }}>
-                <BookCover title={i.title} authors="" id={i.book_id} size="small" />
+                <BookCover title={i.title} authors="" id={i.book_id} src={i.cover_url} size="small" />
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <Link href={`/books/${i.book_id}`}><strong>{i.title}</strong></Link>
                   <div className="muted small">{i.authors} · {money(i.price_cents)} each</div>

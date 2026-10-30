@@ -1,0 +1,37 @@
+sequenceDiagram
+  actor C as Customer
+  participant UI as Checkout page
+  participant API as POST /api/orders
+  participant GW as Payment gateway adapter
+  participant PG as PostgreSQL (role customer)
+  participant TR as Triggers
+  participant ML as Mailer
+
+  C->>UI: choose address, enter card, press Place order
+  UI->>API: JSON {addressId, paymentMethod, card}
+  API->>API: CSRF guard, session cookie, role = customer
+  API->>PG: BEGIN, SET LOCAL ROLE bookstore_customer, fn_cart_totals()
+  PG-->>API: total_cents
+  API->>GW: charge(card, total)
+  alt card declined or invalid
+    GW-->>API: error 402 or 400
+    API-->>UI: Payment declined (cart and stock untouched)
+  else approved
+    GW-->>API: reference + "Card ending 4242"
+    API->>PG: CALL sp_place_order(address, method, reference, label)
+    PG->>PG: lock book rows FOR UPDATE, check stock
+    PG->>TR: insert order, items, payment, delete cart
+    TR->>TR: deduct stock, stock ledger, order notification, low-stock alert
+    alt procedure fails (e.g. last copy gone)
+      PG-->>API: error, whole transaction rolled back
+      API->>GW: refund(reference)
+      API-->>UI: friendly message
+    else committed
+      PG-->>API: order id
+      API-->>UI: 200 order number
+      API-)ML: flushOutbox() after response
+      ML->>PG: fn_pending_emails()
+      ML->>ML: send confirmation e-mail
+      ML->>PG: fn_mark_email(id, sent)
+    end
+  end

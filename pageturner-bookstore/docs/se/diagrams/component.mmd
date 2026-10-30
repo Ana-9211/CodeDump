@@ -1,0 +1,36 @@
+flowchart TB
+  subgraph Browser [Browser - React 19 client components]
+    UI[Pages and components<br/>app/*, components/*]
+    CL[lib/client.js<br/>fetch wrapper, formatting]
+  end
+  subgraph Next [Next.js 15 server - route handlers]
+    EDGE[next.config.mjs<br/>CSP, HSTS, security headers]
+    API[api wrapper lib/http.js<br/>CSRF guard, session, role gate, JSON errors]
+    AUTH[lib/auth.js<br/>bcrypt, JWT cookie]
+    VAL[lib/validate.js, bookInput.js<br/>input validation]
+    ERR[lib/errors.js<br/>SQLSTATE to safe HTTP error]
+    GW[lib/gateway.js<br/>payment adapter]
+    MAIL[lib/mailer.js<br/>e-mail adapter and outbox flush]
+    REV[lib/reviews.js<br/>reviews and trending]
+    DB[lib/db.js<br/>role-scoped transactions]
+  end
+  subgraph PG [PostgreSQL 16]
+    ROLES[Roles + GRANTs + RLS]
+    PROC[Stored procedures and functions<br/>sp_place_order, sp_cancel_order, fn_*]
+    TRG[Triggers<br/>stock, workflow, audit, notify, low stock]
+    TAB[(Tables and views)]
+  end
+  subgraph MG [MongoDB]
+    COL[(reviews, book_views)]
+  end
+  UI --> CL --> EDGE --> API
+  API --> AUTH
+  API --> VAL
+  API --> ERR
+  API --> DB --> ROLES --> PROC --> TAB
+  TRG --- TAB
+  API --> GW
+  API --> MAIL
+  MAIL --> PROC
+  API --> REV --> COL
+  REV -. cached average .-> TAB

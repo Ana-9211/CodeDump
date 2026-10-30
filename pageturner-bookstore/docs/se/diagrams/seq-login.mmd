@@ -1,0 +1,26 @@
+sequenceDiagram
+  actor U as User
+  participant UI as Login page
+  participant API as POST /api/auth/login
+  participant PG as PostgreSQL (role bookstore_app)
+
+  U->>UI: e-mail and password
+  UI->>API: JSON body
+  API->>API: CSRF guard, validate input
+  API->>PG: fn_get_login(email)
+  alt unknown e-mail
+    API->>API: burnPasswordCheck() same time as a real check
+    API-->>UI: 401 Invalid e-mail or password
+  else known account
+    PG-->>API: hash, status, locked_until
+    alt locked or suspended
+      API-->>UI: 429 or 403
+    else password wrong
+      API->>PG: fn_record_login(false), count towards 5 failures
+      API-->>UI: 401 Invalid e-mail or password
+    else password correct
+      API->>PG: fn_record_login(true), fn_get_session_user()
+      API-->>UI: 200 + Set-Cookie bk_session (HttpOnly, SameSite=Lax, 60 min JWT)
+    end
+  end
+  Note over UI,PG: Every later request re-reads the role from PostgreSQL, so suspension and role changes apply at once

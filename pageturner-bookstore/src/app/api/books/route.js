@@ -14,7 +14,7 @@ const SORTS = {
 // Every value reaches SQL as a bound parameter ($1, $2 ...), never by string concatenation.
 export const GET = api(async ({ session, query }) => {
   const page = int(query.page ?? 1, 'Page', { min: 1, max: 10000 });
-  const limit = int(query.limit ?? 12, 'Page size', { min: 1, max: 40 });
+  const limit = int(query.limit ?? 20, 'Page size', { min: 1, max: 40 });
   const sort = oneOf(query.sort ?? 'newest', 'Sort', Object.keys(SORTS));
 
   const params = [];
@@ -25,19 +25,20 @@ export const GET = api(async ({ session, query }) => {
     const q = str(query.q, 'Search', { max: 100 });
     const like = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
     const pq = bind(q), pl = bind(like), pi = bind(q.replace(/[- ]/g, '').toUpperCase());
-    where.push(`(search_vector @@ websearch_to_tsquery('english', ${pq}) OR title ILIKE ${pl} OR authors ILIKE ${pl} OR isbn = ${pi})`);
+    where.push(`(search_vector @@ websearch_to_tsquery('english', ${pq}) OR title ILIKE ${pl} OR authors ILIKE ${pl} OR category_name ILIKE ${pl} OR isbn = ${pi})`);
   }
   if (query.category) {
     where.push(`category_id IN (SELECT category_id FROM fn_category_tree(${bind(int(query.category, 'Category', { min: 1 }))}))`);
   }
   if (query.inStock === '1') where.push('stock > 0');
+  if (query.language) where.push(`language = ${bind(str(query.language, 'Language', { max: 30 }))}`);
   // FR-06: price range (rupees in the URL, paise in the database) and minimum rating
   if (query.minPrice) where.push(`price_cents >= ${bind(Math.round(int(query.minPrice, 'Minimum price', { min: 0, max: 10000000 }) * 100))}`);
   if (query.maxPrice) where.push(`price_cents <= ${bind(Math.round(int(query.maxPrice, 'Maximum price', { min: 0, max: 10000000 }) * 100))}`);
   if (query.minRating) where.push(`avg_rating >= ${bind(int(query.minRating, 'Minimum rating', { min: 1, max: 5 }))}`);
 
   const sql = `
-    SELECT book_id, title, authors, category_id, category_name, store_name,
+    SELECT book_id, title, authors, category_id, category_name, store_name, cover_url,
            price_cents, stock, avg_rating, review_count, created_at,
            count(*) OVER () AS total
       FROM v_book_catalog

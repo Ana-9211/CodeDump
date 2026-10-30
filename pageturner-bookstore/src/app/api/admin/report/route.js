@@ -15,7 +15,7 @@ export const GET = api(async ({ session, query }) => {
       `SELECT oi.title_snapshot AS title, sum(oi.quantity)::int AS units, sum(oi.line_total_cents)::int AS revenue_cents
          FROM order_items oi JOIN orders o ON o.order_id = oi.order_id
         WHERE oi.fulfilment_status <> 'Cancelled' AND o.placed_at::date BETWEEN $1::date AND $2::date
-        GROUP BY oi.book_id, oi.title_snapshot ORDER BY units DESC, title LIMIT 5`, [from, to])).rows;
+        GROUP BY oi.book_id, oi.title_snapshot ORDER BY units DESC, title LIMIT 10`, [from, to])).rows;
     const counts = (await c.query(
       `SELECT (SELECT count(*) FROM users WHERE status = 'active')::int AS active_users,
               (SELECT count(*) FROM books WHERE status = 'approved')::int AS live_books,

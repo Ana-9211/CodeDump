@@ -20,7 +20,7 @@ const pgSummary = async () => (await admin.query('SELECT avg_rating, review_coun
 before(async () => {
   resetDatabase();
   admin = await adminClient();
-  bookId = (await admin.query("SELECT book_id FROM books WHERE title='Dune'")).rows[0].book_id;
+  bookId = (await admin.query("SELECT book_id FROM books WHERE title='Stardust'")).rows[0].book_id;
   for (const p of [ana, bob, cy]) p.bookId = bookId;
 });
 after(async () => { await admin.end(); await pool.end(); });

@@ -3,15 +3,19 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useApp } from './Providers.js';
+import { post } from '@/lib/client.js';
 
 export default function Nav() {
   const { user, cartCount, unread, logout, ready } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [q, setQ] = useState('');
+  const [sent, setSent] = useState(null);
+  async function resend() { try { setSent(await post('/api/auth/resend-verification')); } catch (e) { setSent({ message: e.message }); } }
   const cur = (p) => (pathname === p || pathname.startsWith(p + '/') ? 'page' : undefined);
 
   return (
+    <>
     <header className="nav">
       <div className="nav-inner">
         <Link href="/" className="brand">📖 Page<span>Turner</span></Link>
@@ -36,5 +40,12 @@ export default function Nav() {
         </nav>
       </div>
     </header>
+    {user && user.emailVerified === false && (
+      <div className="verify-banner" role="status">
+        ✉️ Please confirm your e-mail address.{' '}
+        {sent ? <span>{sent.message} {sent.devLink && <a href={sent.devLink}>Demo link</a>}</span> : <button className="link" onClick={resend}>Resend the link</button>}
+      </div>
+    )}
+    </>
   );
 }

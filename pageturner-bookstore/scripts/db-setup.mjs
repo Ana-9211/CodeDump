@@ -64,14 +64,14 @@ async function main() {
   if (already && !reset) {
     say('Schema already exists - skipping SQL files (use `npm run db:reset` to rebuild).');
   } else {
-    for (const file of ['01_schema.sql', '02_functions.sql', '03_triggers.sql', '04_views.sql', '05_security.sql', '06_reference_data.sql', '08_features.sql']) {
+    for (const file of ['01_schema.sql', '02_functions.sql', '03_triggers.sql', '04_views.sql', '05_security.sql', '06_reference_data.sql', '08_features.sql', '09_audit_more.sql', '10_se_requirements.sql']) {
       await db.query(sql(file));
       say(`Ran ${file}`);
     }
     if (!skipDemo) {
       await seedDemoUsers(db);
       await db.query(sql('07_seed_catalog.sql'));
-      say('Ran 07_seed_catalog.sql (36 sample books)');
+      say('Ran 07_seed_catalog.sql (sample fantasy catalogue: approved, pending and rejected books)');
     }
   }
   await db.end();
@@ -79,7 +79,7 @@ async function main() {
   // ---- 5. MongoDB ------------------------------------------------------------
   if (!skipMongo) {
     try {
-      await setupMongo({ log: say });
+      await setupMongo({ log: say, reset });
       say('MongoDB ready: collections reviews, book_views (validators + indexes)');
     } catch (err) {
       console.warn(`\nWARNING: MongoDB setup skipped (${err.message}).`);
@@ -98,13 +98,13 @@ async function seedDemoUsers(db) {
   const users = [
     ['Asha Admin',  'admin@bookstore.test',     'admin',    null],
     ['Ravi Menon',  'seller1@bookstore.test',   'seller',   'Page Turner Books'],
-    ['Divya Rao',   'seller2@bookstore.test',   'seller',   'Campus Corner'],
+    ['Divya Rao',   'seller2@bookstore.test',   'seller',   'The Lantern Shelf'],
     ['Karan Shah',  'customer1@bookstore.test', 'customer', null],
     ['Meera Iyer',  'customer2@bookstore.test', 'customer', null],
   ];
   for (const [name, email, role, store] of users) {
     const { rows } = await db.query(
-      'INSERT INTO users (name, email, password_hash, role_id) SELECT $1, $2, $3, role_id FROM roles WHERE role_name = $4 RETURNING user_id',
+      'INSERT INTO users (name, email, password_hash, role_id, email_verified_at) SELECT $1, $2, $3, role_id, now() FROM roles WHERE role_name = $4 RETURNING user_id',
       [name, email, hash, role],
     );
     if (store) await db.query('INSERT INTO seller_profiles (user_id, store_name, description) VALUES ($1, $2, $3)', [rows[0].user_id, store, `${store} - demo seller`]);

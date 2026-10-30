@@ -1,17 +1,25 @@
 'use client';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from './Providers.js';
 import { money } from '@/lib/client.js';
 
-const HUES = [152, 24, 204, 340, 38, 268, 176, 8];
-export function BookCover({ title, authors, id = 0, size }) {
-  const h = HUES[Number(id) % HUES.length];
+/** A real cover_url is shown as an image (lazy-loaded). Without one the book gets a plain text tile that says so:
+ *  it is a stand-in, never drawn artwork, and the cover is listed for review (see docs/assets.md). */
+export function BookCover({ title, authors, src, size, priority = false }) {
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    return (
+      <img className={`cover cover-img ${size ?? ''}`} src={src} alt={`Cover of ${title}`} width="200" height="300"
+        loading={priority ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken(true)} />
+    );
+  }
   return (
-    <div className={`cover ${size ?? ''}`} style={{ background: `linear-gradient(155deg, hsl(${h} 42% 30%), hsl(${h} 46% 18%))` }} aria-hidden="true">
+    <div className={`cover pending ${size ?? ''}`} role="img" aria-label={`${title} by ${authors || 'unknown author'}. Cover image not added yet.`}>
       <div className="c-title">{title}</div>
       <div className="c-author">{authors}</div>
+      <div className="c-note">cover pending</div>
     </div>
   );
 }
@@ -64,7 +72,7 @@ export function BookCard({ book, onAdd }) {
   return (
     <article className="book-card">
       <Link href={`/books/${book.book_id}`} className="cover-link" aria-label={`${book.title} by ${book.authors}`}>
-        <BookCover title={book.title} authors={book.authors} id={book.book_id} />
+        <BookCover title={book.title} authors={book.authors} id={book.book_id} src={book.cover_url} />
       </Link>
       <div className="body">
         <Link href={`/books/${book.book_id}`} className="title" style={{ textDecoration: 'none', color: 'inherit' }}>{book.title}</Link>
@@ -95,4 +103,17 @@ export function useGuard(roles) {
     else if (!roles.includes(user.role)) router.replace('/');
   }, [ready, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
   return allowed;
+}
+
+/** Two date inputs + quick presets; calls onChange({from,to}) with ISO dates (FR-23 / FR-28 reports). */
+export function DateRange({ value, onChange, presets = [7, 14, 30, 90] }) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const preset = (days) => { const to = new Date(); onChange({ from: iso(new Date(to.getTime() - (days - 1) * 86400000)), to: iso(to) }); };
+  return (
+    <div className="date-range" role="group" aria-label="Report period">
+      <label>From <input type="date" value={value.from} max={value.to || undefined} onChange={(e) => onChange({ ...value, from: e.target.value })} /></label>
+      <label>To <input type="date" value={value.to} min={value.from || undefined} onChange={(e) => onChange({ ...value, to: e.target.value })} /></label>
+      {presets.map((d) => <button key={d} type="button" className="chip" onClick={() => preset(d)}>Last {d} days</button>)}
+    </div>
+  );
 }

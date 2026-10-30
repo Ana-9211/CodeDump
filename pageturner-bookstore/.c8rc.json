@@ -1,0 +1,7 @@
+{
+  "include": ["src/lib/**/*.js"],
+  "exclude": ["src/lib/client.js", "src/lib/auth.js", "src/lib/http.js", "src/lib/env.js"],
+  "reporter": ["text-summary", "text"],
+  "check-coverage": true,
+  "lines": 70
+}

@@ -6,7 +6,7 @@ export const GET = api(async ({ session }) => {
   const rows = await withRole(session, async (c) =>
     (await c.query(
       `SELECT book_id, title, authors, isbn, description, language, category_id, category_name,
-              price_cents, stock, status, rejection_reason, avg_rating, review_count
+              cover_url, low_stock_threshold, price_cents, stock, status, rejection_reason, avg_rating, review_count
          FROM v_book_catalog
         WHERE seller_id = app_user_id() AND status <> 'removed'
         ORDER BY created_at DESC, book_id DESC`)).rows);

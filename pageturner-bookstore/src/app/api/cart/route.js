@@ -5,7 +5,7 @@ import { id as parseId, int, objectBody } from '@/lib/validate.js';
 async function loadCart(session) {
   return withRole(session, async (c) => {
     const items = (await c.query(
-      `SELECT ci.book_id, ci.quantity, v.title, v.authors, v.price_cents, v.stock,
+      `SELECT ci.book_id, ci.quantity, v.title, v.authors, v.cover_url, v.price_cents, v.stock,
               ci.quantity * v.price_cents AS line_total_cents
          FROM cart_items ci JOIN v_book_catalog v ON v.book_id = ci.book_id
         ORDER BY ci.added_at, ci.book_id`)).rows;

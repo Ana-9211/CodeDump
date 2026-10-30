@@ -5,7 +5,7 @@ import { id as parseId, objectBody } from '@/lib/validate.js';
 export const GET = api(async ({ session }) => {
   const rows = await withRole(session, async (c) =>
     (await c.query(
-      `SELECT v.book_id, v.title, v.authors, v.price_cents, v.stock, v.avg_rating, v.review_count, v.category_name, w.added_at
+      `SELECT v.book_id, v.title, v.authors, v.cover_url, v.price_cents, v.stock, v.avg_rating, v.review_count, v.category_name, w.added_at
          FROM wishlist_items w JOIN v_book_catalog v ON v.book_id = w.book_id
         WHERE v.status = 'approved' ORDER BY w.added_at DESC`)).rows);
   return { items: rows };

@@ -108,10 +108,10 @@ $$;
 
 -- Re-checked on every request so a suspended user is locked out immediately
 CREATE OR REPLACE FUNCTION fn_get_session_user(p_user BIGINT)
-RETURNS TABLE (user_id BIGINT, name TEXT, role_name TEXT, status TEXT)
+RETURNS TABLE (user_id BIGINT, name TEXT, role_name TEXT, status TEXT, email_verified BOOLEAN)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
-    SELECT u.user_id, u.name::text, r.role_name::text, u.status::text
+    SELECT u.user_id, u.name::text, r.role_name::text, u.status::text, u.email_verified_at IS NOT NULL
       FROM users u JOIN roles r ON r.role_id = u.role_id
      WHERE u.user_id = p_user
 $$;
@@ -148,7 +148,8 @@ $$;
 -- If ANY step raises, the whole transaction rolls back: no half-placed orders.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE sp_place_order(
-    IN p_address_id BIGINT, IN p_payment_method TEXT, INOUT p_order_id BIGINT DEFAULT NULL
+    IN p_address_id BIGINT, IN p_payment_method TEXT, INOUT p_order_id BIGINT DEFAULT NULL,
+    IN p_txn_ref TEXT DEFAULT NULL, IN p_detail TEXT DEFAULT NULL      -- reference returned by the payment gateway (FR-13)
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
@@ -161,6 +162,7 @@ DECLARE
     v_tax     INT;
     v_ship    INT;
     v_total   INT;
+    v_ref     TEXT;
 BEGIN
     IF p_payment_method NOT IN ('card', 'upi', 'cod') THEN
         RAISE EXCEPTION 'unsupported payment method %', p_payment_method USING ERRCODE = '22023';
@@ -212,9 +214,10 @@ BEGIN
       FROM cart_items ci JOIN books b ON b.book_id = ci.book_id
      WHERE ci.user_id = v_user;
 
-    INSERT INTO payments (order_id, method, amount_cents, status, paid_at)
+    v_ref := COALESCE(NULLIF(btrim(p_txn_ref), ''), 'TXN' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 12)));
+    INSERT INTO payments (order_id, method, amount_cents, status, transaction_ref, detail, paid_at)
     VALUES (p_order_id, p_payment_method, v_total,
-            CASE WHEN p_payment_method = 'cod' THEN 'Pending' ELSE 'Paid' END,
+            CASE WHEN p_payment_method = 'cod' THEN 'Pending' ELSE 'Paid' END, v_ref, left(p_detail, 40),
             CASE WHEN p_payment_method = 'cod' THEN NULL ELSE now() END);
 
     DELETE FROM cart_items WHERE user_id = v_user;
@@ -260,7 +263,8 @@ $$;
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION fn_upsert_book(
     p_book_id BIGINT, p_title TEXT, p_isbn TEXT, p_category_id INT, p_price_cents INT,
-    p_stock INT, p_description TEXT, p_language TEXT, p_authors TEXT[]
+    p_stock INT, p_description TEXT, p_language TEXT, p_authors TEXT[],
+    p_cover_url TEXT DEFAULT NULL, p_low_stock INT DEFAULT NULL
 ) RETURNS BIGINT
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
@@ -278,9 +282,10 @@ BEGIN
     END IF;
 
     IF p_book_id IS NULL THEN
-        INSERT INTO books (seller_id, category_id, isbn, title, description, language, price_cents, stock)
+        INSERT INTO books (seller_id, category_id, isbn, title, description, language, cover_url, price_cents, stock, low_stock_threshold)
         VALUES (v_user, p_category_id, v_isbn, btrim(p_title), coalesce(p_description, ''),
-                coalesce(NULLIF(btrim(p_language), ''), 'English'), p_price_cents, p_stock)
+                coalesce(NULLIF(btrim(p_language), ''), 'English'), NULLIF(btrim(p_cover_url), ''), p_price_cents, p_stock,
+                coalesce(p_low_stock, 5))
         RETURNING book_id INTO v_book;
         IF p_stock > 0 THEN
             INSERT INTO stock_movements (book_id, delta, reason, created_by)
@@ -297,6 +302,8 @@ BEGIN
            SET category_id = p_category_id, isbn = v_isbn, title = btrim(p_title),
                description = coalesce(p_description, ''),
                language = coalesce(NULLIF(btrim(p_language), ''), 'English'),
+               cover_url = NULLIF(btrim(p_cover_url), ''),
+               low_stock_threshold = coalesce(p_low_stock, low_stock_threshold),
                price_cents = p_price_cents, stock = p_stock,
                -- editing a rejected book re-submits it for approval
                rejection_reason = CASE WHEN status = 'rejected' THEN NULL ELSE rejection_reason END,
@@ -354,7 +361,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
     SELECT EXISTS (
         SELECT 1 FROM order_items oi JOIN orders o ON o.order_id = oi.order_id
-         WHERE o.user_id = p_user AND oi.book_id = p_book AND oi.fulfilment_status <> 'Cancelled'
+         WHERE o.user_id = p_user AND oi.book_id = p_book AND oi.fulfilment_status = 'Delivered'   -- FR-17: bought AND received
     )
 $$;
 

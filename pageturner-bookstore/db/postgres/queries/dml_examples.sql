@@ -17,7 +17,7 @@ SELECT b.book_id, a.author_id, 1 FROM books b, authors a WHERE b.title = 'Demo B
 
 -- INSERT ... SELECT with ON CONFLICT (upsert): add to cart, or bump the quantity
 INSERT INTO cart_items (user_id, book_id, quantity)
-SELECT u.user_id, b.book_id, 1 FROM users u, books b WHERE u.email = 'customer1@bookstore.test' AND b.title = 'Dune'
+SELECT u.user_id, b.book_id, 1 FROM users u, books b WHERE u.email = 'customer1@bookstore.test' AND b.title = 'Stardust'
 ON CONFLICT (user_id, book_id) DO UPDATE SET quantity = LEAST(cart_items.quantity + 1, 10);
 
 -- UPDATE: 10% price cut for one category (UPDATE ... FROM with a join, audited by trigger)
@@ -32,7 +32,7 @@ UPDATE books SET stock = stock + 20
 RETURNING title, stock;
 
 -- DELETE: remove a cart line, and delete with a subquery (carts of suspended users)
-DELETE FROM cart_items WHERE book_id = (SELECT book_id FROM books WHERE title = 'Dune');
+DELETE FROM cart_items WHERE book_id = (SELECT book_id FROM books WHERE title = 'Stardust');
 DELETE FROM cart_items WHERE user_id IN (SELECT user_id FROM users WHERE status = 'suspended');
 
 -- The triggers have been busy: here is what the audit trail recorded in this transaction

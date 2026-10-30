@@ -55,5 +55,5 @@ export async function getSession() {
   }
   const [u] = await asApp('SELECT * FROM fn_get_session_user($1::bigint)', [Number(payload.sub)]);
   if (!u || u.status !== 'active') return null;
-  return { userId: u.user_id, role: u.role_name, name: u.name };
+  return { userId: u.user_id, role: u.role_name, name: u.name, emailVerified: u.email_verified };
 }

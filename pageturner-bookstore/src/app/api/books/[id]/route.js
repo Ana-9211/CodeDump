@@ -11,7 +11,7 @@ export const GET = api(async ({ session, params }) => {
   const [book] = await withRole(session, async (c) =>
     (await c.query(
       `SELECT book_id, title, authors, description, language, isbn, category_id, category_name,
-              store_name, seller_id, price_cents, stock, status, avg_rating, review_count
+              store_name, seller_id, cover_url, price_cents, stock, status, avg_rating, review_count
          FROM v_book_catalog WHERE book_id = $1`, [bookId])).rows);
   if (!book) throw new HttpError(404, 'Book not found.');
 

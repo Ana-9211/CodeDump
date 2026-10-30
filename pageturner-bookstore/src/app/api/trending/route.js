@@ -15,7 +15,7 @@ export const GET = api(async ({ session }) => {
 
   const rows = await withRole(session, async (c) =>
     (await c.query(
-      `SELECT book_id, title, authors, price_cents, avg_rating, review_count, category_name
+      `SELECT book_id, title, authors, cover_url, price_cents, avg_rating, review_count, category_name
          FROM v_book_catalog WHERE book_id = ANY($1::bigint[]) AND status = 'approved'`,
       [ranking.map((r) => r.bookId)])).rows);
   const byId = new Map(rows.map((b) => [b.book_id, b]));

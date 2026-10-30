@@ -6,11 +6,11 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 
 | | |
 |---|---|
-| 🗄 **SQL** | PostgreSQL 16 - 19 tables, constraints, procedures, triggers, views, recursive CTEs, window functions, RLS |
+| 🗄 **SQL** | PostgreSQL 16 - 20 tables, constraints, procedures, triggers, views, recursive CTEs, window functions, RLS |
 | 🍃 **NoSQL** | MongoDB - reviews (CRUD + aggregation + validators) and view events (TTL index) |
-| 🖥 **App** | Next.js 15 (App Router): 42 API route files (56 operations) + 16 pages |
+| 🖥 **App** | Next.js 15 (App Router): 46 API route files (60 operations) + 17 pages |
 | 🔐 **Security** | Roles enforced **inside PostgreSQL** (GRANT + Row Level Security + SECURITY DEFINER routines) |
-| ✅ **Tests** | 91 automated tests: database, NoSQL logic, and the real HTTP API |
+| ✅ **Tests** | 115 automated tests (unit, database, NoSQL logic, real HTTP API); lint clean; 85.7 % line coverage of `src/lib` |
 
 ---
 
@@ -21,7 +21,7 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 ```bash
 npm install
 cp .env.example .env            # then edit DATABASE_ADMIN_URL if your postgres superuser needs a password
-npm run db:reset                # creates DB, roles, tables, rules, categories, 36 books, 5 demo users (+ Mongo collections if running)
+npm run db:reset                # creates DB, roles, tables, rules, categories, 53 fantasy books (51 approved, 2 for the moderation demo), 5 demo users (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
 npm run db:seed                 # optional: 16 demo orders spread over 2 weeks, reviews if Mongo is up
 npm run dev                     # http://localhost:3000
 ```
@@ -32,9 +32,9 @@ npm run dev                     # http://localhost:3000
 | `seller1@bookstore.test`, `seller2@bookstore.test` | seller |
 | `admin@bookstore.test` | admin |
 
-Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `psql -d bookstore_dbms -f db/postgres/queries/rbac_demo.sql`
+Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `npm run lint` · `npm run coverage` · `npm run loadtest` · `npm run a11y` · `npm run backup` · `npm run openapi` · `psql -d bookstore_dbms -f db/postgres/queries/rbac_demo.sql`
 
-> No MongoDB? The shop still works. Only reviews and "Trending" show a friendly "unavailable" message.
+> No MongoDB? The shop still works. The review box on each book shows a friendly "unavailable" message, and the "Trending" shelf on the home page quietly disappears.
 
 ---
 
@@ -56,6 +56,19 @@ Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `ps
 | 12 | Authentication + 2+ roles + RBAC in DB | 4 | [`docs/rbac.md`](docs/rbac.md), [`05_security.sql`](db/postgres/05_security.sql), `src/lib/auth.js` |
 | 13 | Documentation + Git/GitHub | 2 | this README, `docs/`, commit history, CI in `.github/workflows` |
 | 14 | Originality / viva | 4 | [`docs/viva-guide.html`](docs/viva-guide.html) |
+
+## 🧪 Software Engineering deliverables (Phase 1 and 2 documents)
+
+| Expected | Where |
+|---|---|
+| SRS requirements, as built, with evidence for all 45 FR / VFR | [`docs/se-traceability.md`](docs/se-traceability.md) |
+| Test plan: sections 3, 4, 5, security validation 5.1, 30 traceable test cases | [`docs/se/test-plan.md`](docs/se/test-plan.md) |
+| Architecture and design: pattern, component diagram, traceability, security architecture, 3 sequence diagrams, API design, error handling | [`docs/se/design-spec.md`](docs/se/design-spec.md) |
+| Use case diagram | [`docs/se/diagrams/usecase.png`](docs/se/diagrams/usecase.png) |
+| Deviations from the team's MERN documents, and what cannot be shown from code (board, PR reviews, videos) | [`docs/se/deviations.md`](docs/se/deviations.md) |
+| GitHub Actions | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+
+Payment and e-mail run through test adapters (`src/lib/gateway.js`, `src/lib/mailer.js`); test cards are listed on the checkout page.
 
 ### The 8-point feature list (criterion 8) in one table
 
@@ -101,7 +114,8 @@ no SQL text ever sent to the browser · security headers · password-reset token
 card data are never logged (payments are simulated).
 
 ## ⚠️ Honest limits
-* Payments and e-mail are **simulated** (no gateway, no SMTP). Reset links are printed on the server console and shown on the page in development only.
+* Book covers and the bookshelf decorations are **not finished**: books without a `cover_url` show a plain "cover pending" tile and the shelf wood is flat colour. Real, licensed assets are tracked in [docs/assets.md](docs/assets.md).
+* Payments and e-mail are **simulated** (no gateway, no SMTP). Reset links are always printed on the server console (the terminal running the app). They are also shown on the page when you run `npm run dev`, never under `npm start`.
 * MongoDB features were unit-tested against an in-memory engine in the development sandbox; run `npm run nosql:demo` and the full `npm test` with a real `mongod` to see them live (CI does this).
 
 ## Push to your own repository

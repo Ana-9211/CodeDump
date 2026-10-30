@@ -3,7 +3,7 @@ info:
   title: PageTurner Online Bookstore API
   version: 1.0.0
   description: >
-    Generated from the route handlers in src/app/api (npm run docs:openapi).
+    Generated from the route handlers in src/app/api (npm run openapi).
     Authentication is an httpOnly cookie named bk_session. The role listed under each operation is enforced by the
     route AND again by PostgreSQL (GRANTs + row level security). All bodies are JSON.
 servers:
@@ -148,7 +148,7 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
   /api/admin/report:
     get:
-      summary: "and the recursive category tree with sub-tree totals."
+      summary: "Platform dashboard: window-function revenue series, CTE seller ranking, grouped breakdowns, and the recursive category tree with sub-tree totals."
       description: "Allowed roles: admin"
       security: [ { session: [] } ]
       responses:
@@ -211,7 +211,7 @@ paths:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
     patch:
-      summary: "and the column privilege means this role can change `status` and nothing else on users."
+      summary: "Suspend / reactivate. The database refuses to let an admin change their own row (RLS) and the column privilege means this role can change `status` and nothing else on users."
       description: "Allowed roles: admin"
       security: [ { session: [] } ]
       responses:
@@ -221,7 +221,7 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
   /api/auth/forgot:
     post:
-      summary: "Only a SHA-256 hash of the token is stored; the raw token only travels in the e-mail link."
+      summary: "FR-03. The reply is always the same, so nobody can use this form to discover which e-mails exist. Only a SHA-256 hash of the token is stored; the raw token only travels in the e-mail link."
       description: "Open to everyone (guests included); data is still filtered by row level security."
       responses:
         '200': { description: OK }
@@ -249,11 +249,21 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
   /api/auth/register:
     post:
-      summary: "(fn_register_user refuses any other role inside the database as well)."
+      summary: "Sign-up: creates a customer or a seller. Admins can never be self-registered (fn_register_user refuses any other role inside the database as well)."
       description: "Open to everyone (guests included); data is still filtered by row level security."
       responses:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/Error' }
+  /api/auth/resend-verification:
+    post:
+      summary: "POST /api/auth/resend-verification"
+      description: "Allowed roles: customer, seller, admin"
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
   /api/auth/reset:
     post:
       summary: "POST /api/auth/reset"
@@ -261,9 +271,16 @@ paths:
       responses:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/Error' }
+  /api/auth/verify:
+    post:
+      summary: "FR-01: the link in the welcome e-mail lands on /verify-email, which posts the token here."
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
   /api/books:
     get:
-      summary: "Every value reaches SQL as a bound parameter ($1, $2 ...), never by string concatenation."
+      summary: "Catalogue: search + category (with all sub-categories) + sort + pagination. Every value reaches SQL as a bound parameter ($1, $2 ...), never by string concatenation."
       description: "Open to everyone (guests included); data is still filtered by row level security."
       responses:
         '200': { description: OK }
@@ -306,7 +323,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
     post:
-      summary: "POST = 'add to cart' (adds to what is already there, max 10)"
+      summary: "POST = \"add to cart\" (adds to what is already there, max 10)"
       description: "Allowed roles: customer"
       security: [ { session: [] } ]
       responses:
@@ -315,7 +332,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
     put:
-      summary: "PUT = 'set quantity' (cart page +/- buttons)"
+      summary: "PUT = \"set quantity\" (cart page +/- buttons)"
       description: "Allowed roles: customer"
       security: [ { session: [] } ]
       responses:
@@ -338,6 +355,20 @@ paths:
   /api/categories:
     get:
       summary: "Whole category tree from the recursive CTE function fn_category_tree()"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/health:
+    get:
+      summary: "GET /api/health"
+      description: "Open to everyone (guests included); data is still filtered by row level security."
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/languages:
+    get:
+      summary: "Languages that have at least one approved book (feeds the catalogue's language filter, FR-06)"
       description: "Open to everyone (guests included); data is still filtered by row level security."
       responses:
         '200': { description: OK }
@@ -372,7 +403,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
     post:
-      summary: "Checkout. One call to the stored procedure = one atomic transaction (see sp_place_order)."
+      summary: "Checkout (FR-13). Card/UPI are charged through the gateway adapter first; the order is only created after a successful charge, and the charge is refunded if creating the order fails. One call to the stored procedure = one atomic transaction (see sp_place_order). Card data is checked by the gateway and never reaches the database."
       description: "Allowed roles: customer"
       security: [ { session: [] } ]
       responses:
@@ -429,7 +460,7 @@ paths:
     parameters:
       - { name: reviewId, in: path, required: true, schema: { type: string } }
     post:
-      summary: "Toggle a 'helpful' vote on someone else's review"
+      summary: "Toggle a \"helpful\" vote on someone else's review"
       description: "Allowed roles: customer, seller, admin"
       security: [ { session: [] } ]
       responses:
@@ -458,7 +489,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
     post:
-      summary: "Create a listing. It starts as 'pending' until an administrator approves it."
+      summary: "Create a listing. It starts as \"pending\" until an administrator approves it."
       description: "Allowed roles: seller"
       security: [ { session: [] } ]
       responses:
@@ -479,7 +510,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
     delete:
-      summary: "'Delete' = soft delete (orders keep pointing at the book)"
+      summary: "\"Delete\" = soft delete (orders keep pointing at the book)"
       description: "Allowed roles: seller"
       security: [ { session: [] } ]
       responses:
@@ -491,7 +522,7 @@ paths:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
     patch:
-      summary: "The trigger rejects illegal jumps, returns stock on cancel and updates the order's overall status."
+      summary: "Move an order line forward: Packed -> Shipped -> Delivered (or Cancelled). The trigger rejects illegal jumps, returns stock on cancel and updates the order's overall status."
       description: "Allowed roles: seller"
       security: [ { session: [] } ]
       responses:
@@ -501,7 +532,7 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
   /api/seller/orders:
     get:
-      summary: "and orders, and the seller has no privilege at all on the payments table."
+      summary: "The seller's own order lines. Row level security removes everyone else's lines and orders, and the seller has no privilege at all on the payments table."
       description: "Allowed roles: seller"
       security: [ { session: [] } ]
       responses:
@@ -511,7 +542,7 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
   /api/seller/report:
     get:
-      summary: "return only THIS seller's sales."
+      summary: "Same SQL function the admin uses (fn_sales_report); row level security makes it return only THIS seller's sales."
       description: "Allowed roles: seller"
       security: [ { session: [] } ]
       responses:
@@ -521,7 +552,7 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
   /api/trending:
     get:
-      summary: "the book details come from PostgreSQL. If MongoDB is down the shelf is simply empty."
+      summary: "\"Trending this week\": the ranking comes from a MongoDB aggregation over view events, the book details come from PostgreSQL. If MongoDB is down the shelf is simply empty."
       description: "Open to everyone (guests included); data is still filtered by row level security."
       responses:
         '200': { description: OK }

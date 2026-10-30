@@ -30,6 +30,17 @@ export async function closeMongo() {
   }
 }
 
+/** 'up' | 'down' for the health probe. A failed connection attempt is forgotten so MongoDB can come back later. */
+export async function mongoStatus() {
+  try {
+    const db = await Promise.race([getMongoDb().then((d) => d.command({ ping: 1 })), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 500))]);
+    return db ? 'up' : 'down';
+  } catch {
+    g.__bookstoreMongo = undefined;
+    return 'down';
+  }
+}
+
 export const reviewsCollection = async () => (await getMongoDb()).collection('reviews');
 export const viewsCollection = async () => (await getMongoDb()).collection('book_views');
 
@@ -82,9 +93,18 @@ async function ensureCollection(db, name, validator, notes) {
   }
 }
 
-export async function setupMongo({ log = () => {} } = {}) {
+export async function setupMongo({ log = () => {}, reset = false } = {}) {
   const db = await getMongoDb();
   const notes = [];
+
+  // A PostgreSQL reset restarts every book_id/user_id at 1. Reviews and views that still point at the OLD ids
+  // would be attached to the wrong books (and could break the unique index), so they are cleared together.
+  if (reset) {
+    for (const name of ['reviews', 'book_views']) {
+      await db.collection(name).drop().catch((err) => { if (err.codeName !== 'NamespaceNotFound') throw err; });
+    }
+    log('  MongoDB collections reviews and book_views cleared (ids restart after a PostgreSQL reset)');
+  }
 
   await ensureCollection(db, 'reviews', reviewValidator, notes);
   await ensureCollection(db, 'book_views', viewValidator, notes);
