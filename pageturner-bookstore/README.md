@@ -21,7 +21,7 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 ```bash
 npm install
 cp .env.example .env            # then edit DATABASE_ADMIN_URL if your postgres superuser needs a password
-npm run db:reset                # creates DB, roles, tables, rules, categories, 36 books, 5 demo users (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
+npm run db:reset                # creates DB, roles, tables, rules, categories, 53 fantasy books (51 approved, 2 for the moderation demo), 5 demo users (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
 npm run db:seed                 # optional: 16 demo orders spread over 2 weeks, reviews if Mongo is up
 npm run dev                     # http://localhost:3000
 ```
