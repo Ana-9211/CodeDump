@@ -72,6 +72,10 @@ async function main() {
       await seedDemoUsers(db);
       await db.query(sql('07_seed_catalog.sql'));
       say('Ran 07_seed_catalog.sql (sample fantasy catalogue: approved, pending and rejected books)');
+      if (fs.existsSync(path.join(sqlDir, '11_covers.sql'))) {      // written by `npm run covers`; keeps the cover images after a reset
+        await db.query(sql('11_covers.sql'));
+        say('Ran 11_covers.sql (cover images)');
+      }
     }
   }
   await db.end();
