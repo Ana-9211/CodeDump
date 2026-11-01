@@ -10,7 +10,7 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 | **NoSQL** | MongoDB - reviews (CRUD + aggregation + validators) and view events (TTL index) |
 | **App** | Next.js 15 (App Router): 46 API route files (60 operations) + 17 pages |
 | **Security** | Roles enforced **inside PostgreSQL** (GRANT + Row Level Security + SECURITY DEFINER routines) |
-| **Tests** | 115 automated tests (unit, database, NoSQL logic, real HTTP API); lint clean; 85.7 % line coverage of `src/lib` |
+| **Tests** | 129 automated tests (unit, database, NoSQL logic, real HTTP API); lint clean; 85.7 % line coverage of `src/lib` |
 
 ---
 
