@@ -207,7 +207,7 @@ export default function BookView({ id, modal = false, preview = null, onClose, o
                       <div className="meta">{x.userName} · {dateOnly(x.createdAt)}{x.updatedAt ? ' (edited)' : ''} · <span className="badge green">Verified purchase</span></div>
                       <p style={{ margin: '8px 0' }}>{x.body}</p>
                       <div className="actions">
-                        {user && !x.mine && <button className="btn secondary sm" onClick={() => helpful(x)}>{x.votedHelpful ? '✓ ' : ''}Helpful ({x.helpfulCount})</button>}
+                        {user && !x.mine && <button className="btn secondary sm" onClick={() => helpful(x)}>{x.votedHelpful ? 'Marked helpful' : 'Helpful'} ({x.helpfulCount})</button>}
                         {!user && <span className="muted small">{x.helpfulCount} found this helpful</span>}
                         {x.mine && <button className="btn secondary sm" onClick={() => setEditing(true)}>Edit</button>}
                         {(x.mine || user?.role === 'admin') && <button className="btn danger secondary sm" onClick={() => remove(x)}>Delete</button>}

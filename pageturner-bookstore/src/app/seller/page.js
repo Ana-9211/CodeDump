@@ -59,7 +59,7 @@ function Books() {
     <>
       <div className="row between" style={{ marginBottom: 12 }}><h2 style={{ margin: 0 }}>My listings</h2><button className="btn" onClick={() => setForm(BLANK)}>+ New listing</button></div>
       <ErrorBox error={books.error} />
-      {books.loading ? <Loading /> : books.data.items.length === 0 ? <Empty icon="📚" title="No listings yet">Add your first book. An administrator approves it before it goes live.</Empty> : (
+      {books.loading ? <Loading /> : books.data.items.length === 0 ? <Empty title="No listings yet">Add your first book. An administrator approves it before it goes live.</Empty> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Title</th><th>Status</th><th className="num">Price</th><th className="num">Stock</th><th className="num">Rating</th><th /></tr></thead>
           <tbody>{books.data.items.map((b) => (
@@ -91,7 +91,7 @@ function Orders() {
         <select aria-label="Filter by status" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All</option>{['Placed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}</select></div>
       <ErrorBox error={orders.error} />
-      {orders.loading ? <Loading /> : orders.data.items.length === 0 ? <Empty icon="📦" title="Nothing here" /> : (
+      {orders.loading ? <Loading /> : orders.data.items.length === 0 ? <Empty title="Nothing here" /> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Order</th><th>Book</th><th>Ship to</th><th className="num">Qty</th><th>Status</th><th /></tr></thead>
           <tbody>{orders.data.items.map((o) => (
@@ -124,7 +124,7 @@ function Report() {
       <div className="card"><h3>Daily revenue <span className="muted small">(bars) and running total (line)</span></h3><SalesChart rows={d.report} /></div>
       <div className="grid-2" style={{ marginTop: 16 }}>
         <div className="card"><h3>Best sellers</h3>{d.topBooks.length ? <BarList items={d.topBooks} label={(b) => b.title} value={(b) => b.units} format={(v) => `${v}×`} /> : <p className="muted">No sales in this period.</p>}</div>
-        <div className="card"><h3>⚠ Restock soon</h3>{d.lowStock.length ? <ul>{d.lowStock.map((b) => <li key={b.book_id}>{b.title} <span className="badge red">{b.stock} left</span></li>)}</ul> : <p className="muted">All stocked up.</p>}</div>
+        <div className="card"><h3>Restock soon</h3>{d.lowStock.length ? <ul>{d.lowStock.map((b) => <li key={b.book_id}>{b.title} <span className="badge red">{b.stock} left</span></li>)}</ul> : <p className="muted">All stocked up.</p>}</div>
       </div>
     </>
   );
@@ -134,7 +134,7 @@ export default function SellerHub() {
   const ok = useGuard(['seller']);
   const [tab, setTab] = useState('books');
   if (!ok) return <Loading />;
-  const tabs = [['books', '📚 Listings'], ['orders', '📦 Orders'], ['report', '📈 Sales']];
+  const tabs = [['books', 'Listings'], ['orders', 'Orders'], ['report', 'Sales']];
   return (
     <>
       <h1>Seller hub</h1>

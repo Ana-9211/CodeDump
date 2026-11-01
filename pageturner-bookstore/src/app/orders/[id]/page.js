@@ -52,7 +52,7 @@ export default function OrderPage({ params }) {
         </div>
         <div className="stack">
           <div className="card"><h3>Delivering to</h3>
-            <p>{o.ship_full_name}<br />{o.ship_line1}{o.ship_line2 ? `, ${o.ship_line2}` : ''}<br />{o.ship_city}, {o.ship_state} {o.ship_postal_code}<br />📞 {o.ship_phone}</p></div>
+            <p>{o.ship_full_name}<br />{o.ship_line1}{o.ship_line2 ? `, ${o.ship_line2}` : ''}<br />{o.ship_city}, {o.ship_state} {o.ship_postal_code}<br />Phone: {o.ship_phone}</p></div>
           {payment && <div className="card"><h3>Payment</h3><p>{payment.method.toUpperCase()} · <Status value={payment.status} />{payment.detail && <><br /><span className="small">{payment.detail}</span></>}<br /><span className="muted small">Ref {payment.transaction_ref}</span></p></div>}
           {canCancel && <button className="btn danger secondary" onClick={cancel}>Cancel order</button>}
         </div>

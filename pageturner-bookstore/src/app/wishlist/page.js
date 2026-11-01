@@ -17,9 +17,9 @@ export default function Wishlist() {
   if (!ok || w.loading) return <Loading />;
   return (
     <>
-      <h1>♡ My wishlist</h1>
+      <h1>My wishlist</h1>
       <ErrorBox error={w.error} />
-      {w.data?.items.length === 0 && <Empty icon="♡" title="Nothing saved yet"><p>Tap “Wishlist” on any book to keep it for later.</p><Link className="btn" href="/books">Browse books</Link></Empty>}
+      {w.data?.items.length === 0 && <Empty title="Nothing saved yet"><p>Tap “Wishlist” on any book to keep it for later.</p><Link className="btn" href="/books">Browse books</Link></Empty>}
       <div className="book-grid">{w.data?.items.map((b) => (
         <div key={b.book_id} className="stack"><BookCard book={b} onAdd={add} /><button className="btn secondary sm block" onClick={() => remove(b)}>Remove</button></div>
       ))}</div>

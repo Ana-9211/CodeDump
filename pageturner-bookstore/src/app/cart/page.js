@@ -25,7 +25,7 @@ export default function CartPage() {
     <>
       <h1>Your cart</h1>
       <ErrorBox error={cart.error} />
-      {d && d.items.length === 0 && <Empty icon="🛒" title="Your cart is empty"><Link className="btn" href="/books">Find a book</Link></Empty>}
+      {d && d.items.length === 0 && <Empty title="Your cart is empty"><Link className="btn" href="/books">Find a book</Link></Empty>}
       {d && d.items.length > 0 && (
         <div className="grid-cart">
           <div className="card">

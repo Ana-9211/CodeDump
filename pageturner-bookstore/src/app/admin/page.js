@@ -18,7 +18,7 @@ function Moderation() {
     <>
       <div className="chips" style={{ marginBottom: 14 }}>{['pending', 'approved', 'rejected', 'removed', 'all'].map((s) => <button key={s} className={`chip ${status === s ? 'active' : ''}`} onClick={() => setStatus(s)}>{s}</button>)}</div>
       <ErrorBox error={books.error} />
-      {books.loading ? <Loading /> : books.data.items.length === 0 ? <Empty icon="✅" title="Nothing to review" /> : (
+      {books.loading ? <Loading /> : books.data.items.length === 0 ? <Empty title="Nothing to review" /> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Book</th><th>Store</th><th>Category</th><th className="num">Price</th><th className="num">Stock</th><th>Status</th><th /></tr></thead>
           <tbody>{books.data.items.map((b) => (
@@ -78,7 +78,7 @@ function Dashboard() {
           <h3 style={{ marginTop: 18 }}>Top books</h3>{d.topBooks.length ? <BarList items={d.topBooks} label={(b) => b.title} value={(b) => b.units} format={(v) => `${v}×`} /> : <p className="muted">No sales yet.</p>}</div>
       </div>
       <div className="card" style={{ marginTop: 16 }}><h3>Category tree</h3><p className="muted small">Built by the recursive CTE in <code>fn_category_tree()</code>; counts include sub-categories.</p>
-        {d.categories.map((c) => <div key={c.category_id} style={{ paddingLeft: c.depth * 22 }}>{c.depth ? '↳ ' : ''}<strong>{c.name}</strong> <span className="muted small">{c.subtree_books} books</span></div>)}</div>
+        {d.categories.map((c) => <div key={c.category_id} style={{ paddingLeft: c.depth * 22 }}>{c.depth ? '- ' : ''}<strong>{c.name}</strong> <span className="muted small">{c.subtree_books} books</span></div>)}</div>
     </>
   );
 }
@@ -123,7 +123,7 @@ function Applications() {
   if (apps.loading) return <Loading />;
   return (
     <><ErrorBox error={apps.error} />
-      {apps.data?.items.length === 0 ? <Empty icon="🏪" title="No seller applications" /> : (
+      {apps.data?.items.length === 0 ? <Empty title="No seller applications" /> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Applicant</th><th>Store</th><th>Reason</th><th>Status</th><th>Applied</th><th /></tr></thead>
           <tbody>{apps.data?.items.map((a) => (
@@ -157,7 +157,7 @@ function Categories() {
       <div className="card"><h3>Category tree</h3><p className="muted small">Deleting is blocked while a category has books or sub-categories (a rule inside <code>fn_delete_category</code>).</p>
         {items.map((c) => (
           <div key={c.category_id} className="row between" style={{ paddingLeft: c.depth * 22, padding: '5px 0 5px ' + c.depth * 22 + 'px' }}>
-            <span>{c.depth ? '↳ ' : ''}<strong>{c.name}</strong> <span className="muted small">{c.direct_books} direct · {c.subtree_books} total</span></span>
+            <span>{c.depth ? '- ' : ''}<strong>{c.name}</strong> <span className="muted small">{c.direct_books} direct · {c.subtree_books} total</span></span>
             <span className="actions"><button className="btn secondary sm" onClick={() => rename(c)}>Rename</button><button className="btn danger secondary sm" onClick={() => remove(c)}>Delete</button></span>
           </div>))}</div>
       <form className="card" onSubmit={add}><h3>Add category</h3>
@@ -172,7 +172,7 @@ export default function Admin() {
   const ok = useGuard(['admin']);
   const [tab, setTab] = useState('dash');
   if (!ok) return <Loading />;
-  const tabs = [['dash', '📊 Dashboard'], ['books', '✅ Moderation'], ['users', '👥 Users'], ['apps', '🏪 Seller applications'], ['cats', '🗂 Categories'], ['audit', '🧾 Audit log'], ['settings', '⚙ Settings']];
+  const tabs = [['dash', 'Dashboard'], ['books', 'Moderation'], ['users', 'Users'], ['apps', 'Seller applications'], ['cats', 'Categories'], ['audit', 'Audit log'], ['settings', 'Settings']];
   return (
     <>
       <h1>Admin console</h1>

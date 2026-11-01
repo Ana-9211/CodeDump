@@ -11,7 +11,7 @@ export default function Orders() {
     <>
       <h1>My orders</h1>
       <ErrorBox error={error} />
-      {data?.items.length === 0 && <Empty icon="📦" title="No orders yet"><Link className="btn" href="/books">Start shopping</Link></Empty>}
+      {data?.items.length === 0 && <Empty title="No orders yet"><Link className="btn" href="/books">Start shopping</Link></Empty>}
       {data?.items.length > 0 && (
         <div className="table-wrap"><table>
           <thead><tr><th>Order</th><th>Placed</th><th>Items</th><th>Payment</th><th>Status</th><th className="num">Total</th></tr></thead>

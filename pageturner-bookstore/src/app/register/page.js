@@ -23,7 +23,7 @@ export default function RegisterPage() {
         <h1>Create your account</h1>
         <ErrorBox error={err} />
         <div className="chips" role="radiogroup" aria-label="Account type" style={{ marginBottom: 16 }}>
-          {[['customer', '🛍 I want to buy'], ['seller', '🏪 I want to sell']].map(([v, l]) => (
+          {[['customer', 'I want to buy'], ['seller', 'I want to sell']].map(([v, l]) => (
             <button key={v} type="button" role="radio" aria-checked={f.role === v} className={`chip ${f.role === v ? 'active' : ''}`} onClick={() => setF({ ...f, role: v })}>{l}</button>
           ))}
         </div>
