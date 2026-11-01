@@ -51,7 +51,7 @@ const bookId = async (title) => (await db.query('SELECT book_id FROM books WHERE
 before(async () => {
   resetDatabase();
   db = await adminClient();
-  if (!fs.existsSync(path.join(root, '.next/BUILD_ID'))) execFileSync('npx', ['next', 'build'], { cwd: root, stdio: 'ignore' });
+  if (!fs.existsSync(path.join(root, '.next/BUILD_ID'))) execFileSync('npx', ['next', 'build'], { cwd: root, stdio: 'ignore', shell: process.platform === 'win32' });   // on Windows npx is npx.cmd, which needs a shell
   server = spawn('node', ['node_modules/next/dist/bin/next', 'start', '-p', String(PORT), '-H', '127.0.0.1'], { cwd: root, stdio: 'ignore', env: { ...process.env, NODE_ENV: 'production', JWT_SECRET: 'test-secret-for-api-tests-only' } });
   for (let i = 0; i < 120; i++) {
     try { if ((await fetch(`${BASE}/api/categories`)).status === 200) return; } catch { /* not up yet */ }
