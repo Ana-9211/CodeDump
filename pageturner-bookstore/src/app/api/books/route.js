@@ -1,6 +1,7 @@
 import { api } from '@/lib/http.js';
 import { withRole } from '@/lib/db.js';
-import { int, oneOf, str } from '@/lib/validate.js';
+import { int, oneOf } from '@/lib/validate.js';
+import { catalogFilters } from '@/lib/catalogFilters.js';
 
 const SORTS = {
   newest: 'created_at DESC',
@@ -21,21 +22,10 @@ export const GET = api(async ({ session, query }) => {
   const bind = (v) => { params.push(v); return `$${params.length}`; };
   const where = ["status = 'approved'"];
 
-  if (query.q) {
-    const q = str(query.q, 'Search', { max: 100 });
-    const like = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
-    const pq = bind(q), pl = bind(like), pi = bind(q.replace(/[- ]/g, '').toUpperCase());
-    where.push(`(search_vector @@ websearch_to_tsquery('english', ${pq}) OR title ILIKE ${pl} OR authors ILIKE ${pl} OR category_name ILIKE ${pl} OR isbn = ${pi})`);
-  }
+  where.push(...catalogFilters(query, bind));
   if (query.category) {
     where.push(`category_id IN (SELECT category_id FROM fn_category_tree(${bind(int(query.category, 'Category', { min: 1 }))}))`);
   }
-  if (query.inStock === '1') where.push('stock > 0');
-  if (query.language) where.push(`language = ${bind(str(query.language, 'Language', { max: 30 }))}`);
-  // FR-06: price range (rupees in the URL, paise in the database) and minimum rating
-  if (query.minPrice) where.push(`price_cents >= ${bind(Math.round(int(query.minPrice, 'Minimum price', { min: 0, max: 10000000 }) * 100))}`);
-  if (query.maxPrice) where.push(`price_cents <= ${bind(Math.round(int(query.maxPrice, 'Maximum price', { min: 0, max: 10000000 }) * 100))}`);
-  if (query.minRating) where.push(`avg_rating >= ${bind(int(query.minRating, 'Minimum rating', { min: 1, max: 5 }))}`);
 
   const sql = `
     SELECT book_id, title, authors, category_id, category_name, store_name, cover_url,

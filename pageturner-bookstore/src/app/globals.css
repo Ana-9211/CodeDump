@@ -372,3 +372,6 @@ body:has(.bookcase-wrap) { background: #1d130c; }
   .bk-overlay, .stage.phase-open .bk-content > *, .stage.phase-swing { animation: none !important; }
   .bk-lid { display: none; }
 }
+
+.hint.on-dark { color: #e6c27e; }
+.chip.dark.active .n { opacity: .8; }

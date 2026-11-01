@@ -87,8 +87,21 @@ export default function Shelf() {
   const minRating = sp.get('minRating') ?? '';
   const language = sp.get('language') ?? '';
   const [price, setPrice] = useState({ min: minPrice, max: maxPrice });
+  useEffect(() => { setPrice({ min: minPrice, max: maxPrice }); }, [minPrice, maxPrice]);
+  const priceBad = price.min !== '' && price.max !== '' && Number(price.min) > Number(price.max);
 
-  const cats = useFetch('/api/categories');
+  // the genre chips are counted with the same search and filters as the list (but not the category or the sort)
+  const catQuery = useMemo(() => {
+    const p = new URLSearchParams();
+    if (q) p.set('q', q);
+    if (inStock) p.set('inStock', '1');
+    if (minPrice) p.set('minPrice', minPrice);
+    if (maxPrice) p.set('maxPrice', maxPrice);
+    if (minRating) p.set('minRating', minRating);
+    if (language) p.set('language', language);
+    return p.toString();
+  }, [q, inStock, minPrice, maxPrice, minRating, language]);
+  const cats = useFetch(`/api/categories${catQuery ? `?${catQuery}` : ''}`);
   const langs = useFetch('/api/languages');
   const tree = useMemo(() => cats.data?.items ?? [], [cats.data]);
 
@@ -133,7 +146,7 @@ export default function Shelf() {
     if (live.current.busy && !reset) return;
     live.current.busy = true;
     live.current.key = key;
-    setState((s) => ({ ...s, loading: true, error: null }));
+    setState((s) => (reset ? { items: [], page: 0, pages: 1, total: null, loading: true, error: null } : { ...s, loading: true, error: null }));
     try {
       const d = await get(`/api/books?${key}&page=${page}`);
       if (live.current.key !== key) return;                      // the filters changed while this was loading
@@ -203,10 +216,12 @@ export default function Shelf() {
           {levels.map((lvl, i) => (
             <div className="cat-row" key={i}>
               {i === 0 && <button className={`chip dark ${!category ? 'active' : ''}`} aria-pressed={!category} onClick={() => go({ category: '' })}>All</button>}
+              {i > 0 && <button className={`chip dark ${String(path[i - 1].category_id) === category ? 'active' : ''}`} aria-pressed={String(path[i - 1].category_id) === category}
+                onClick={() => go({ category: path[i - 1].category_id })}>All {path[i - 1].name} <span className="n">{path[i - 1].filtered_books}</span></button>}
               {lvl.map((c) => (
                 <button key={c.category_id} className={`chip dark ${path.some((p) => p.category_id === c.category_id) ? 'active' : ''}`}
                   aria-pressed={String(c.category_id) === category} onClick={() => go({ category: c.category_id })}>
-                  {c.name} <span className="n">{c.subtree_books}</span>
+                  {c.name} <span className="n">{c.filtered_books ?? c.subtree_books}</span>
                 </button>
               ))}
             </div>
@@ -226,18 +241,19 @@ export default function Shelf() {
                 <option value="">Any language</option>
                 {langs.data?.items.map((l) => <option key={l.language} value={l.language}>{l.language} ({l.n})</option>)}
               </select></div>
-            <form className="field price-field" onSubmit={(e) => { e.preventDefault(); go({ minPrice: price.min, maxPrice: price.max }); }}>
+            <form className="field price-field" onSubmit={(e) => { e.preventDefault(); if (!priceBad) go({ minPrice: price.min, maxPrice: price.max }); }}>
               <label htmlFor="pmin">Price (₹)</label>
               <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
-                <input id="pmin" aria-label="Minimum price" type="number" min="0" placeholder="Min" value={price.min} onChange={(e) => setPrice({ ...price, min: e.target.value })} />
-                <input aria-label="Maximum price" type="number" min="0" placeholder="Max" value={price.max} onChange={(e) => setPrice({ ...price, max: e.target.value })} />
-                <button className="btn sm">Set</button>
+                <input id="pmin" aria-label="Minimum price" type="number" min="0" step="any" placeholder="Min" value={price.min} onChange={(e) => setPrice({ ...price, min: e.target.value })} />
+                <input aria-label="Maximum price" type="number" min="0" step="any" placeholder="Max" value={price.max} onChange={(e) => setPrice({ ...price, max: e.target.value })} />
+                <button className="btn sm" disabled={priceBad}>Set</button>
               </div>
+              {priceBad && <p className="hint on-dark" role="alert">The minimum price is higher than the maximum.</p>}
             </form>
             <div className="field"><label>Rating</label>
               <div className="chips">{['', '4', '3'].map((r) => <button key={r} className={`chip dark ${minRating === r ? 'active' : ''}`} aria-pressed={minRating === r} onClick={() => go({ minRating: r })}>{r ? `${r}★ & up` : 'Any'}</button>)}</div></div>
             <label className="check on-dark"><input type="checkbox" checked={inStock} onChange={(e) => go({ inStock: e.target.checked })} /> In stock only</label>
-            {(filtersOn || q || category) && <button className="btn sm secondary light" onClick={() => router.push(pathname)}>Clear everything</button>}
+            {(filtersOn || q || category || sort !== 'newest') && <button className="btn sm secondary light" onClick={() => router.push(pathname)}>Clear everything</button>}
           </div>
         </details>
       </div>
