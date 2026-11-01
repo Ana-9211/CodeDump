@@ -48,11 +48,11 @@ describe('1. constraints keep bad data out (even for a superuser)', () => {
        VALUES (${U['customer1@bookstore.test'].userId}, 'a','b','c','d','560001','9999999', true)`), code('23505'));
   });
   test('a category cannot be its own parent; root names are unique', async () => {
-    await assert.rejects(admin.query('UPDATE categories SET parent_id = category_id WHERE name = $1', ['Wonderlands']), code('23514'));
-    await assert.rejects(admin.query("INSERT INTO categories (name, parent_id) VALUES ('Portal Worlds', NULL)"), code('23505'));
+    await assert.rejects(admin.query('UPDATE categories SET parent_id = category_id WHERE name = $1', ['Portal Fantasy']), code('23514'));
+    await assert.rejects(admin.query("INSERT INTO categories (name, parent_id) VALUES ('Fantasy', NULL)"), code('23505'));
   });
   test('a customer cannot own books (trigger)', async () => {
-    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Wonderlands'")).rows[0].category_id;
+    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Portal Fantasy'")).rows[0].category_id;
     await assert.rejects(admin.query(`INSERT INTO books (seller_id, category_id, isbn, title, price_cents, stock)
        VALUES (${U['customer1@bookstore.test'].userId}, ${cat}, '9780000000002', 'Nope', 100, 1)`), code('23514'));
   });
@@ -190,7 +190,7 @@ describe('3. fulfilment workflow, cancellation and audit triggers', () => {
 
 describe('4. seller functions', () => {
   test('fn_upsert_book creates a pending book with ordered authors; edits keep ownership', async () => {
-    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Tea & Spells'")).rows[0].category_id;
+    const cat = (await admin.query("SELECT category_id FROM categories WHERE name='Cozy Fantasy'")).rows[0].category_id;
     const id = (await as('seller2@bookstore.test', (c) => c.query('SELECT fn_upsert_book(NULL, $1, $2, $3, $4, $5, $6, $7, $8) AS id',
       ['SQL Antipatterns', '978-1-93435-655-5', cat, 3999 * 10, 7, 'Avoiding the pitfalls', 'English', ['Bill Karwin', 'Co Author']]))).rows[0].id;
     const b = (await bookByTitle('SQL Antipatterns'));
@@ -268,17 +268,17 @@ describe('5. role-based access control inside PostgreSQL', () => {
 describe('6. queries', () => {
   test('recursive category tree: depth, path and subtree totals', async () => {
     const rows = (await as('customer1@bookstore.test', (c) => c.query('SELECT * FROM fn_category_tree()'))).rows;
-    const cs = rows.find((r) => r.name === 'Sky & Stars');
-    assert.equal(cs.depth, 2); assert.equal(cs.path, 'Fairy Tales & Retellings > Enchanted Lands > Sky & Stars');
-    const enchanted = rows.find((r) => r.name === 'Enchanted Lands');
+    const cs = rows.find((r) => r.name === 'Norse');
+    assert.equal(cs.depth, 2); assert.equal(cs.path, 'Fairy Tales and Folklore > Myths and Legends > Norse');
+    const enchanted = rows.find((r) => r.name === 'Myths and Legends');
     assert.equal(enchanted.subtree_books, enchanted.direct_books + rows.filter((r) => r.parent_id === enchanted.category_id).reduce((s, r) => s + r.subtree_books, 0));
-    const sub = (await as('customer1@bookstore.test', (c) => c.query("SELECT name FROM fn_category_tree((SELECT category_id FROM categories WHERE name='Portal Worlds'))"))).rows.map((r) => r.name);
-    assert.deepEqual(sub.sort(), ['Dark Whimsy', 'Funny Fantasy', 'Portal Worlds', 'Timeless Tales', 'Wonderlands']);
+    const sub = (await as('customer1@bookstore.test', (c) => c.query("SELECT name FROM fn_category_tree((SELECT category_id FROM categories WHERE name='Fantasy'))"))).rows.map((r) => r.name);
+    assert.deepEqual(sub.sort(), ['Cozy Fantasy', 'Dark Fantasy', 'Epic and High Fantasy', 'Fantasy', 'Humorous Fantasy', 'Portal Fantasy', 'Urban and Contemporary Fantasy']);
   });
   test('catalogue view joins authors, category and store; full-text search works', async () => {
     const r = (await withRole(null, (c) => c.query("SELECT authors, category_name, store_name FROM v_book_catalog WHERE title = 'Good Omens'"))).rows[0];
     assert.equal(r.authors, 'Terry Pratchett, Neil Gaiman');
-    assert.equal(r.category_name, 'Funny Fantasy'); assert.equal(r.store_name, 'Page Turner Books');
+    assert.equal(r.category_name, 'Humorous Fantasy'); assert.equal(r.store_name, 'Page Turner Books');
     const fts = (await withRole(null, (c) => c.query("SELECT title FROM v_book_catalog WHERE search_vector @@ websearch_to_tsquery('english', 'wizard magic')"))).rows.map((x) => x.title);
     assert.ok(fts.includes("Harry Potter and the Philosopher's Stone"));
   });

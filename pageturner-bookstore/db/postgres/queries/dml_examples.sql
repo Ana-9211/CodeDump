@@ -10,7 +10,7 @@ BEGIN;
 INSERT INTO authors (name) VALUES ('Example Writer') RETURNING author_id;
 INSERT INTO books (seller_id, category_id, title, isbn, description, price_cents, stock)
 SELECT u.user_id, c.category_id, 'Demo Book', '9780306406157', 'Inserted by dml_examples.sql', 29900, 12
-  FROM users u, categories c WHERE u.email = 'seller2@bookstore.test' AND c.name = 'Wonderlands'
+  FROM users u, categories c WHERE u.email = 'seller2@bookstore.test' AND c.name = 'Portal Fantasy'
 RETURNING book_id, status;               -- status defaults to 'pending'
 INSERT INTO book_authors (book_id, author_id, author_order)
 SELECT b.book_id, a.author_id, 1 FROM books b, authors a WHERE b.title = 'Demo Book' AND a.name = 'Example Writer';
@@ -22,7 +22,7 @@ ON CONFLICT (user_id, book_id) DO UPDATE SET quantity = LEAST(cart_items.quantit
 
 -- UPDATE: 10% price cut for one category (UPDATE ... FROM with a join, audited by trigger)
 UPDATE books b SET price_cents = (b.price_cents * 90) / 100
-  FROM categories c WHERE c.category_id = b.category_id AND c.name = 'Wonderlands' AND b.status = 'approved'
+  FROM categories c WHERE c.category_id = b.category_id AND c.name = 'Portal Fantasy' AND b.status = 'approved'
 RETURNING b.title, b.price_cents;
 
 -- UPDATE with a subquery: restock every approved book that is nearly sold out

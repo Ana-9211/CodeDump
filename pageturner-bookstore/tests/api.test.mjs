@@ -163,14 +163,14 @@ describe('catalogue', () => {
   });
   test('category filter includes sub-categories (recursive CTE)', async () => {
     const cats = (await guest.get('/api/categories')).json.items;
-    const science = cats.find((c) => c.name === 'Enchanted Lands'), cs = cats.find((c) => c.name === 'Sky & Stars');
+    const science = cats.find((c) => c.name === 'Middle Grade'), cs = cats.find((c) => c.name === 'Animal Stories');
     assert.equal(science.depth, 1); assert.equal(cs.depth, 2);
     const r = await guest.get(`/api/books?category=${science.category_id}&limit=40`);
     assert.equal(r.json.total, science.subtree_books);
-    assert.ok(r.json.items.some((b) => b.category_name === 'Sky & Stars') && r.json.items.some((b) => b.category_name === 'Hidden Realms'));
+    assert.ok(r.json.items.some((b) => b.category_name === 'Animal Stories') && r.json.items.some((b) => b.category_name === 'Adventure and Magic'));
   });
   test('sorting works', async () => {
-    const portal = (await guest.get('/api/categories')).json.items.find((c) => c.name === 'Portal Worlds').category_id;
+    const portal = (await guest.get('/api/categories')).json.items.find((c) => c.name === 'Fantasy').category_id;
     const asc = (await guest.get(`/api/books?sort=price_asc&limit=40&category=${portal}`)).json.items.map((b) => b.price_cents);
     assert.deepEqual(asc, [...asc].sort((a, b) => a - b));
     const desc = (await guest.get(`/api/books?sort=price_desc&limit=40&category=${portal}`)).json.items.map((b) => b.price_cents);
@@ -276,7 +276,7 @@ describe('seller and admin journey', () => {
   let newBook, orderItemId, buyer, owner, admin, rival;
   test('seller creates a listing; it is pending and hidden until an admin approves it', async () => {
     owner = await as('seller2@bookstore.test'); admin = await as('admin@bookstore.test'); rival = await as('seller1@bookstore.test');
-    const cat = (await new Client().get('/api/categories')).json.items.find((c) => c.name === 'Dark Whimsy').category_id;
+    const cat = (await new Client().get('/api/categories')).json.items.find((c) => c.name === 'Dark Fantasy').category_id;
     const bad = await owner.post('/api/seller/books', { title: 'T', isbn: 'bad', categoryId: cat, price: 499, stock: 3, authors: 'A' });
     assert.equal(bad.status, 400);
     const neg = await owner.post('/api/seller/books', { title: 'Free Book', isbn: '9781234567897', categoryId: cat, price: -5, stock: 3, authors: 'A' });
@@ -351,7 +351,7 @@ describe('seller and admin journey', () => {
     const a = (await admin.get('/api/admin/report')).json;
     assert.ok(a.totals.revenue_cents >= 54900);
     assert.equal(a.sellers[0].revenue_rank, 1); assert.equal(a.counts.pending_books, 1);
-    assert.ok(a.categories.some((c) => c.name === 'Enchanted Lands' && c.depth === 1));
+    assert.ok(a.categories.some((c) => c.name === 'Middle Grade' && c.depth === 1));
     assert.equal((await owner.get('/api/seller/report?from=2026-12-31&to=2026-01-01')).status, 400);
     assert.equal((await owner.get('/api/seller/report?from=abc')).status, 400);
   });
@@ -532,16 +532,16 @@ describe('features merged from the SE backlog', () => {
     assert.equal(made.status, 200);
     assert.equal((await admin.post('/api/admin/categories', { name: 'Poetry' })).status, 409, 'duplicate root name');
     assert.equal((await admin.patch(`/api/admin/categories/${made.json.categoryId}`, { name: 'Verse' })).status, 200);
-    const fiction = (await db.query("SELECT category_id FROM categories WHERE name='Portal Worlds'")).rows[0].category_id;
+    const fiction = (await db.query("SELECT category_id FROM categories WHERE name='Fantasy'")).rows[0].category_id;
     const del = await admin.del(`/api/admin/categories/${fiction}`);
     assert.equal(del.status, 409); assert.match(del.json.error, /sub-categories|books/);
     assert.equal((await admin.del(`/api/admin/categories/${made.json.categoryId}`)).status, 200);
   });
 
-  test('search also matches the category name ("wonderlands" finds the Wonderlands books)', async () => {
-    const r = (await new Client().get('/api/books?q=wonderlands')).json;
-    assert.ok(r.total >= 2, `expected the Wonderlands books, got ${r.total}`);
-    assert.ok(r.items.some((b) => b.category_name === 'Wonderlands'));
+  test('search also matches the category name ("portal fantasy" finds the Portal Fantasy books)', async () => {
+    const r = (await new Client().get('/api/books?q=portal%20fantasy')).json;
+    assert.ok(r.total >= 2, `expected the Portal Fantasy books, got ${r.total}`);
+    assert.ok(r.items.some((b) => b.category_name === 'Portal Fantasy'));
   });
 
   test('category and setting changes are written to the audit log', async () => {

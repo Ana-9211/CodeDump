@@ -78,7 +78,7 @@ CREATE UNIQUE INDEX uq_addresses_one_default ON addresses (user_id) WHERE is_def
 -- ---------------------------------------------------------------------
 -- 2. Catalogue
 -- ---------------------------------------------------------------------
--- Self-referencing table = a tree (Portal Worlds -> Wonderlands). Queried with a recursive CTE.
+-- Self-referencing table = a tree (Fantasy -> Portal Fantasy). Queried with a recursive CTE.
 CREATE TABLE categories (
     category_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        VARCHAR(80) NOT NULL,
