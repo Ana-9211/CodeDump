@@ -4,7 +4,49 @@
 > has *one* number (primary key). If a card says "see card #42" that is a foreign key. Normalization is the rule
 > "write each fact on exactly one card, so when it changes you only fix it in one place."
 
-## 1. Tables at a glance (19 in PostgreSQL)
+## ER diagrams (Chen notation)
+
+The entity-relationship model was drawn in Chen notation from the real schema (`01_schema.sql`, `08_features.sql`,
+`10_se_requirements.sql`). One overview shows every entity and relationship with key attributes only; four detailed
+diagrams show every attribute by domain. The MongoDB collections are drawn separately because they are not part of the
+relational model. The Graphviz sources are in `docs/diagrams/` (`make_chen.py` rebuilds the `.dot`, `.png` and `.svg` files).
+
+| Diagram | What it shows |
+|---|---|
+| [`er-chen-overview.png`](diagrams/er-chen-overview.png) | all 20 entities, all relationships, key attributes only |
+| [`er-chen-users.png`](diagrams/er-chen-users.png) | users, roles, seller profile (weak), addresses, seller applications, e-mail verification, password reset, notifications |
+| [`er-chen-catalogue.png`](diagrams/er-chen-catalogue.png) | books, categories (recursive), authors (M:N) |
+| [`er-chen-orders.png`](diagrams/er-chen-orders.png) | cart, orders, order items (weak), payments (weak), stock movements |
+| [`er-chen-other.png`](diagrams/er-chen-other.png) | wishlist, audit log, app settings |
+| [`er-chen-nosql.png`](diagrams/er-chen-nosql.png) | MongoDB reviews and view events, linked to PostgreSQL by `book_id` and `user_id` only |
+
+![ER overview](diagrams/er-chen-overview.png)
+
+### Key to the notation
+
+| Symbol | Meaning |
+|---|---|
+| Rectangle | entity |
+| Double rectangle | weak entity (cannot exist without its owner: seller profile, order item, payment) |
+| Diamond | relationship, named with a verb |
+| Double diamond | identifying relationship of a weak entity (Has Profile, Contains, Settled By) |
+| Ellipse | attribute; an underlined name is the primary key (for a weak entity, an italic underlined name is the partial key) |
+| Double ellipse | multivalued attribute (only `helpfulBy` in the MongoDB review) |
+| Dashed ellipse | derived attribute (`avg_rating`, `review_count`, `search_vector`, `total_cents`, `line_total_cents`, `helpfulCount`) |
+| Ellipse with ellipses attached | composite attribute (the shipping address snapshot on an order) |
+| Single line | partial participation |
+| Double line | total participation (every instance must take part) |
+| 1, N, M beside an entity | cardinality of that entity in the relationship |
+| Attribute hanging off a diamond | relationship attribute (`quantity` on Adds To Cart, `author_order` on Written By) |
+| Dashed rectangle | entity repeated from another diagram, key only |
+
+Reading notes:
+- Many-to-many relationships (Written By, Adds To Cart, Saves To Wishlist) are diamonds with M and N; the junction tables `book_authors`, `cart_items` and `wishlist_items` only appear later, in the relational mapping below.
+- Foreign keys are not attributes in Chen notation; they are the lines to the relationship diamonds.
+- Category has a recursive relationship (Parent Of) with role labels parent and child; a root category has no parent, so the child side is partial.
+- `audit_log` has no relationships on purpose: `record_id` and `actor_id` are plain numbers so the log survives deletes.
+
+## 1. Tables at a glance (20 in PostgreSQL)
 
 | Group | Table | Primary key | Foreign keys → | Notes |
 |---|---|---|---|---|
@@ -12,6 +54,7 @@
 | | `users` | `user_id` | `role_id → roles` | `email` CITEXT UNIQUE, bcrypt hash, lockout columns |
 | | `seller_profiles` | `user_id` | `user_id → users` | **1:1** extension of users |
 | | `seller_applications` | `application_id` | `user_id`, `decided_by → users` | partial UNIQUE: one *pending* per user |
+| | `email_verifications` | `token_hash` | `user_id → users` | only the SHA-256 of the e-mail confirmation token is stored; one-time, expires |
 | | `password_resets` | `token_hash` | `user_id → users` | only the SHA-256 of the token is stored |
 | | `addresses` | `address_id` | `user_id → users` | max 5 per user (trigger), one default (partial unique index) |
 | Catalogue | `categories` | `category_id` | `parent_id → categories` | **self-reference** → tree |

@@ -42,7 +42,7 @@ Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `np
 
 | # | Criterion | Marks | Where |
 |---|---|---|---|
-| 1 | ER diagram | 2 | [`docs/diagrams/er-diagram.png`](docs/diagrams/er-diagram.png), source `er.mmd` |
+| 1 | ER diagram (Chen notation) | 2 | [`docs/diagrams/er-chen-overview.png`](docs/diagrams/er-chen-overview.png) plus four detailed and one MongoDB diagram, key in [`docs/relational-schema.md`](docs/relational-schema.md) |
 | 2 | Relational schema | 3 | [`docs/relational-schema.md`](docs/relational-schema.md) (keys, FDs, normalization) |
 | 3 | SQL DDL + constraints | 4 | [`db/postgres/01_schema.sql`](db/postgres/01_schema.sql), [`08_features.sql`](db/postgres/08_features.sql) |
 | 4 | NoSQL creation | 4 | [`src/lib/mongo.js`](src/lib/mongo.js) `setupMongo()` - collections, `$jsonSchema`, unique + TTL indexes |
@@ -105,7 +105,7 @@ scripts/          db-setup, seed-demo, nosql-demo
 src/lib/          db (role switching), mongo, reviews, auth, validation, errors
 src/app/          pages + src/app/api route handlers
 tests/            database, nosql, api suites
-docs/             ER diagram, schema, RBAC, API, testing, SE traceability, viva guide
+docs/             Chen ER diagrams, schema, RBAC, API, testing, SE traceability, viva guide
 ```
 
 ## Security in one glance
