@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFetch, post, get, money } from '@/lib/client.js';
 import { useApp } from '@/components/Providers.js';
 import { BookCover, Stars } from '@/components/ui.js';
+import BookView from '@/components/BookView.js';
 
 const BATCH = 12;
 
@@ -17,7 +18,10 @@ const useCols = () => useSyncExternalStore(subscribeCols, colsNow, () => 2);
 
 const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
 
-function Row({ books, index, cols, onAdd, canBuy, firstRow }) {
+// a plain click opens the book in place; modified clicks (new tab, new window) keep the normal link behaviour
+const plainClick = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
+function Row({ books, index, cols, onAdd, onOpen, canBuy, firstRow }) {
   const pad = cols - books.length;
   return (
     <section className="shelf-row" aria-label={`Shelf ${index + 1}`} style={{ '--cols': cols }}>
@@ -25,7 +29,8 @@ function Row({ books, index, cols, onAdd, canBuy, firstRow }) {
       <ul className="shelf-books">
         {books.map((b, i) => (
           <li key={b.book_id} className="slot" style={{ '--tilt': `${((b.book_id * 7) % 5 - 2) * 0.35}deg` }}>
-            <Link href={`/books/${b.book_id}`} prefetch={false} className="spine" tabIndex={-1} aria-hidden="true">
+            <Link href={`/books/${b.book_id}`} prefetch={false} className="spine" aria-label={`Open ${b.title}`}
+              onClick={(e) => { if (plainClick(e)) { e.preventDefault(); onOpen(b, e.currentTarget); } }}>
               <BookCover title={b.title} authors={b.authors} id={b.book_id} src={b.cover_url} priority={firstRow && i < 2} />
             </Link>
           </li>
@@ -36,7 +41,8 @@ function Row({ books, index, cols, onAdd, canBuy, firstRow }) {
       <ul className="shelf-tags">
         {books.map((b) => (
           <li key={b.book_id} className="tag">
-            <Link href={`/books/${b.book_id}`} prefetch={false} className="t-title">{b.title}</Link>
+            <Link href={`/books/${b.book_id}`} prefetch={false} className="t-title"
+              onClick={(e) => { if (plainClick(e)) { e.preventDefault(); onOpen(b, e.currentTarget); } }}>{b.title}</Link>
             <span className="t-author">{b.authors}</span>
             {b.review_count > 0 && <span className="t-stars"><Stars value={b.avg_rating} size=".75rem" /></span>}
             <span className="t-meta">
@@ -81,8 +87,21 @@ export default function Shelf() {
   const minRating = sp.get('minRating') ?? '';
   const language = sp.get('language') ?? '';
   const [price, setPrice] = useState({ min: minPrice, max: maxPrice });
+  useEffect(() => { setPrice({ min: minPrice, max: maxPrice }); }, [minPrice, maxPrice]);
+  const priceBad = price.min !== '' && price.max !== '' && Number(price.min) > Number(price.max);
 
-  const cats = useFetch('/api/categories');
+  // the genre chips are counted with the same search and filters as the list (but not the category or the sort)
+  const catQuery = useMemo(() => {
+    const p = new URLSearchParams();
+    if (q) p.set('q', q);
+    if (inStock) p.set('inStock', '1');
+    if (minPrice) p.set('minPrice', minPrice);
+    if (maxPrice) p.set('maxPrice', maxPrice);
+    if (minRating) p.set('minRating', minRating);
+    if (language) p.set('language', language);
+    return p.toString();
+  }, [q, inStock, minPrice, maxPrice, minRating, language]);
+  const cats = useFetch(`/api/categories${catQuery ? `?${catQuery}` : ''}`);
   const langs = useFetch('/api/languages');
   const tree = useMemo(() => cats.data?.items ?? [], [cats.data]);
 
@@ -99,6 +118,27 @@ export default function Shelf() {
     return p.toString();
   }, [q, category, sort, inStock, minPrice, maxPrice, minRating, language]);
 
+  // the open book: an overlay on this page. It adds one history entry (same address) so Back closes it.
+  const [openBook, setOpenBook] = useState(null);
+  const origin = useRef(null);
+  const pushed = useRef(false);
+  const openIn = useCallback((b, el) => {
+    origin.current = el;
+    window.history.pushState(window.history.state, '', window.location.href);
+    pushed.current = true;
+    setOpenBook(b);
+  }, []);
+  useEffect(() => {
+    const onPop = () => { pushed.current = false; setOpenBook(null); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const closeBook = useCallback(() => { if (pushed.current) window.history.back(); else setOpenBook(null); }, []);
+  const seeDetails = useCallback((id) => { pushed.current = false; router.replace(`/books/${id}`); }, [router]);
+  useEffect(() => {
+    if (openBook === null && origin.current) { const el = origin.current; origin.current = null; if (document.contains(el)) el.focus({ preventScroll: true }); }
+  }, [openBook]);
+
   const [state, setState] = useState({ items: [], page: 0, pages: 1, total: null, loading: true, error: null });
   const live = useRef({ key: '', busy: false });
 
@@ -106,7 +146,7 @@ export default function Shelf() {
     if (live.current.busy && !reset) return;
     live.current.busy = true;
     live.current.key = key;
-    setState((s) => ({ ...s, loading: true, error: null }));
+    setState((s) => (reset ? { items: [], page: 0, pages: 1, total: null, loading: true, error: null } : { ...s, loading: true, error: null }));
     try {
       const d = await get(`/api/books?${key}&page=${page}`);
       if (live.current.key !== key) return;                      // the filters changed while this was loading
@@ -176,10 +216,12 @@ export default function Shelf() {
           {levels.map((lvl, i) => (
             <div className="cat-row" key={i}>
               {i === 0 && <button className={`chip dark ${!category ? 'active' : ''}`} aria-pressed={!category} onClick={() => go({ category: '' })}>All</button>}
+              {i > 0 && <button className={`chip dark ${String(path[i - 1].category_id) === category ? 'active' : ''}`} aria-pressed={String(path[i - 1].category_id) === category}
+                onClick={() => go({ category: path[i - 1].category_id })}>All {path[i - 1].name} <span className="n">{path[i - 1].filtered_books}</span></button>}
               {lvl.map((c) => (
                 <button key={c.category_id} className={`chip dark ${path.some((p) => p.category_id === c.category_id) ? 'active' : ''}`}
                   aria-pressed={String(c.category_id) === category} onClick={() => go({ category: c.category_id })}>
-                  {c.name} <span className="n">{c.subtree_books}</span>
+                  {c.name} <span className="n">{c.filtered_books ?? c.subtree_books}</span>
                 </button>
               ))}
             </div>
@@ -199,18 +241,19 @@ export default function Shelf() {
                 <option value="">Any language</option>
                 {langs.data?.items.map((l) => <option key={l.language} value={l.language}>{l.language} ({l.n})</option>)}
               </select></div>
-            <form className="field price-field" onSubmit={(e) => { e.preventDefault(); go({ minPrice: price.min, maxPrice: price.max }); }}>
+            <form className="field price-field" onSubmit={(e) => { e.preventDefault(); if (!priceBad) go({ minPrice: price.min, maxPrice: price.max }); }}>
               <label htmlFor="pmin">Price (₹)</label>
               <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
-                <input id="pmin" aria-label="Minimum price" type="number" min="0" placeholder="Min" value={price.min} onChange={(e) => setPrice({ ...price, min: e.target.value })} />
-                <input aria-label="Maximum price" type="number" min="0" placeholder="Max" value={price.max} onChange={(e) => setPrice({ ...price, max: e.target.value })} />
-                <button className="btn sm">Set</button>
+                <input id="pmin" aria-label="Minimum price" type="number" min="0" step="any" placeholder="Min" value={price.min} onChange={(e) => setPrice({ ...price, min: e.target.value })} />
+                <input aria-label="Maximum price" type="number" min="0" step="any" placeholder="Max" value={price.max} onChange={(e) => setPrice({ ...price, max: e.target.value })} />
+                <button className="btn sm" disabled={priceBad}>Set</button>
               </div>
+              {priceBad && <p className="hint on-dark" role="alert">The minimum price is higher than the maximum.</p>}
             </form>
             <div className="field"><label>Rating</label>
               <div className="chips">{['', '4', '3'].map((r) => <button key={r} className={`chip dark ${minRating === r ? 'active' : ''}`} aria-pressed={minRating === r} onClick={() => go({ minRating: r })}>{r ? `${r}★ & up` : 'Any'}</button>)}</div></div>
             <label className="check on-dark"><input type="checkbox" checked={inStock} onChange={(e) => go({ inStock: e.target.checked })} /> In stock only</label>
-            {(filtersOn || q || category) && <button className="btn sm secondary light" onClick={() => router.push(pathname)}>Clear everything</button>}
+            {(filtersOn || q || category || sort !== 'newest') && <button className="btn sm secondary light" onClick={() => router.push(pathname)}>Clear everything</button>}
           </div>
         </details>
       </div>
@@ -222,7 +265,7 @@ export default function Shelf() {
             {state.error.message} <button className="btn sm" onClick={() => loadNext(filterKey, state.page + 1, state.page === 0)}>Try again</button>
           </div>
         )}
-        {rows.map((r, i) => <Row key={r[0].book_id} books={r} index={i} cols={cols} onAdd={add} canBuy={canBuy} firstRow={i === 0} />)}
+        {rows.map((r, i) => <Row key={r[0].book_id} books={r} index={i} cols={cols} onAdd={add} onOpen={openIn} canBuy={canBuy} firstRow={i === 0} />)}
         {state.loading && state.page === 0 && <><RowSkeleton cols={cols} /><RowSkeleton cols={cols} /></>}
         {state.loading && state.page > 0 && <RowSkeleton cols={cols} />}
         {!state.loading && !state.error && state.total === 0 && (
@@ -239,6 +282,7 @@ export default function Shelf() {
         )}
         <div className="base" aria-hidden="true" />
       </div>
+      {openBook && <BookView key={openBook.book_id} id={openBook.book_id} preview={openBook} modal onClose={closeBook} onDetails={() => seeDetails(openBook.book_id)} />}
     </div>
   );
 }

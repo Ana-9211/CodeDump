@@ -18,7 +18,7 @@ let seed = 7;
 const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
 
-const users = (await admin.query("SELECT u.user_id, u.email, r.role_name AS role FROM users u JOIN roles r USING (role_id) WHERE u.email LIKE 'customer%'")).rows;
+const users = (await admin.query("SELECT u.user_id, u.email, r.role_name AS role FROM users u JOIN roles r USING (role_id) WHERE u.email LIKE 'customer%' ORDER BY u.email")).rows;
 if (!users.length) { console.error('Run `npm run db:setup` first.'); process.exit(1); }
 const already = (await admin.query('SELECT count(*)::int n FROM orders')).rows[0].n;
 if (already > 0) { console.log(`Shop already has ${already} orders - nothing to do.`); process.exit(0); }
@@ -26,7 +26,7 @@ const books = (await admin.query("SELECT book_id FROM books WHERE status='approv
 
 const placed = [];
 for (let i = 0; i < 16; i++) {
-  const u = pick(users);
+  const u = users[i % users.length];           // round robin: every customer gets 3 or 4 of the 16 orders
   const session = { userId: u.user_id, role: 'customer' };
   const orderId = await withRole(session, async (c) => {
     const { rows: [addr] } = await c.query('SELECT address_id FROM addresses ORDER BY is_default DESC LIMIT 1');
@@ -50,6 +50,20 @@ for (const [i, o] of placed.entries()) {
 const cancel = placed[4];                                   // index 4 never left "Placed"
 await withRole(cancel.session, (c) => c.query('CALL sp_cancel_order($1::bigint)', [cancel.orderId]));
 console.log(`Placed ${placed.length} orders (1 cancelled), spread over the last 2 weeks.`);
+
+// open carts and wishlists, so those screens are not empty for any demo customer (the order flow above emptied the carts)
+const open = (await admin.query("SELECT book_id FROM books WHERE status='approved' AND stock >= 8 ORDER BY book_id")).rows.map((r) => r.book_id);
+for (const [i, u] of users.entries()) {
+  if (i % 2 === 0) {                                        // customers 1, 3, 5 have something waiting in the cart
+    for (const b of new Set([open[(i * 7 + 3) % open.length], open[(i * 11 + 8) % open.length]])) {
+      await admin.query('INSERT INTO cart_items (user_id, book_id, quantity) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [u.user_id, b, 1 + (i % 2)]);
+    }
+  }
+  for (const b of new Set([open[(i * 5 + 1) % open.length], open[(i * 13 + 6) % open.length], open[(i * 3 + 20) % open.length]])) {
+    await admin.query('INSERT INTO wishlist_items (user_id, book_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [u.user_id, b]);
+  }
+}
+console.log(`Carts for ${Math.ceil(users.length / 2)} customers and wishlists for all ${users.length}.`);
 
 // ---- MongoDB part (optional) -------------------------------------------------
 try {

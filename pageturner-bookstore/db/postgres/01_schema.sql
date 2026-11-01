@@ -78,7 +78,7 @@ CREATE UNIQUE INDEX uq_addresses_one_default ON addresses (user_id) WHERE is_def
 -- ---------------------------------------------------------------------
 -- 2. Catalogue
 -- ---------------------------------------------------------------------
--- Self-referencing table = a tree (Portal Worlds -> Wonderlands). Queried with a recursive CTE.
+-- Self-referencing table = a tree (Fantasy -> Portal Fantasy). Queried with a recursive CTE.
 CREATE TABLE categories (
     category_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        VARCHAR(80) NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE books (
                         CONSTRAINT ck_book_desc CHECK (length(description) <= 5000),
     language            VARCHAR(30)  NOT NULL DEFAULT 'English',
     cover_url           VARCHAR(300)
-                        CONSTRAINT ck_cover_url CHECK (cover_url IS NULL OR cover_url ~* '^https?://[^[:space:]]+$'),
+                        CONSTRAINT ck_cover_url CHECK (cover_url IS NULL OR cover_url ~* '^https?://[^[:space:]]+$' OR cover_url ~* '^/covers/[a-z0-9_-]+\.(jpg|jpeg|png|webp)$'),
     price_cents         INT          NOT NULL CONSTRAINT ck_book_price CHECK (price_cents > 0),
     stock               INT          NOT NULL DEFAULT 0 CONSTRAINT ck_book_stock CHECK (stock >= 0),
     low_stock_threshold INT          NOT NULL DEFAULT 5 CONSTRAINT ck_book_low CHECK (low_stock_threshold >= 0),

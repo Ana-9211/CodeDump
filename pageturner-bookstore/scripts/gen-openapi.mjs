@@ -56,8 +56,12 @@ for (const r of routes) {
     const roles = /roles:\s*\[([^\]]*)\]/.exec(body)?.[1].split(',').map((s) => s.replace(/['"\s]/g, '')).filter(Boolean);
     let k = op.i - 1; const doc = [];
     while (k >= 0 && lines[k].startsWith('//')) doc.unshift(lines[k--].replace(/^\/\/\s?/, ''));
-    const summary = doc.length ? doc.join(' ').trim() : `${op.method} ${r.url}`;
+    // "// @query name (type): text" lines above a handler become documented query parameters, not summary text
+    const queryDocs = doc.map((d) => /^@query (\w+) \((\w+)\): (.*)$/.exec(d)).filter(Boolean);
+    const text = doc.filter((d) => !d.startsWith('@query '));
+    const summary = text.length ? text.join(' ').trim() : `${op.method} ${r.url}`;
     out += `    ${op.method.toLowerCase()}:\n      summary: ${q(summary)}\n`;
+    if (queryDocs.length) out += `      parameters:\n${queryDocs.map(([, n, t, d]) => `        - { name: ${n}, in: query, required: false, description: ${q(d)}, schema: { type: ${t} } }\n`).join('')}`;
     out += roles ? `      description: ${q(`Allowed roles: ${roles.join(', ')}`)}\n      security: [ { session: [] } ]\n`
                  : `      description: "Open to everyone (guests included); data is still filtered by row level security."\n`;
     out += `      responses:\n        '200': { description: OK }\n        '400': { $ref: '#/components/responses/Error' }\n`;

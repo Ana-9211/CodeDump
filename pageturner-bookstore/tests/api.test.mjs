@@ -51,7 +51,7 @@ const bookId = async (title) => (await db.query('SELECT book_id FROM books WHERE
 before(async () => {
   resetDatabase();
   db = await adminClient();
-  if (!fs.existsSync(path.join(root, '.next/BUILD_ID'))) execFileSync('npx', ['next', 'build'], { cwd: root, stdio: 'ignore' });
+  if (!fs.existsSync(path.join(root, '.next/BUILD_ID'))) execFileSync('npx', ['next', 'build'], { cwd: root, stdio: 'ignore', shell: process.platform === 'win32' });   // on Windows npx is npx.cmd, which needs a shell
   server = spawn('node', ['node_modules/next/dist/bin/next', 'start', '-p', String(PORT), '-H', '127.0.0.1'], { cwd: root, stdio: 'ignore', env: { ...process.env, NODE_ENV: 'production', JWT_SECRET: 'test-secret-for-api-tests-only' } });
   for (let i = 0; i < 120; i++) {
     try { if ((await fetch(`${BASE}/api/categories`)).status === 200) return; } catch { /* not up yet */ }
@@ -163,14 +163,14 @@ describe('catalogue', () => {
   });
   test('category filter includes sub-categories (recursive CTE)', async () => {
     const cats = (await guest.get('/api/categories')).json.items;
-    const science = cats.find((c) => c.name === 'Enchanted Lands'), cs = cats.find((c) => c.name === 'Sky & Stars');
+    const science = cats.find((c) => c.name === 'Middle Grade'), cs = cats.find((c) => c.name === 'Animal Stories');
     assert.equal(science.depth, 1); assert.equal(cs.depth, 2);
     const r = await guest.get(`/api/books?category=${science.category_id}&limit=40`);
     assert.equal(r.json.total, science.subtree_books);
-    assert.ok(r.json.items.some((b) => b.category_name === 'Sky & Stars') && r.json.items.some((b) => b.category_name === 'Hidden Realms'));
+    assert.ok(r.json.items.some((b) => b.category_name === 'Animal Stories') && r.json.items.some((b) => b.category_name === 'Adventure and Magic'));
   });
   test('sorting works', async () => {
-    const portal = (await guest.get('/api/categories')).json.items.find((c) => c.name === 'Portal Worlds').category_id;
+    const portal = (await guest.get('/api/categories')).json.items.find((c) => c.name === 'Fantasy').category_id;
     const asc = (await guest.get(`/api/books?sort=price_asc&limit=40&category=${portal}`)).json.items.map((b) => b.price_cents);
     assert.deepEqual(asc, [...asc].sort((a, b) => a - b));
     const desc = (await guest.get(`/api/books?sort=price_desc&limit=40&category=${portal}`)).json.items.map((b) => b.price_cents);
@@ -276,7 +276,7 @@ describe('seller and admin journey', () => {
   let newBook, orderItemId, buyer, owner, admin, rival;
   test('seller creates a listing; it is pending and hidden until an admin approves it', async () => {
     owner = await as('seller2@bookstore.test'); admin = await as('admin@bookstore.test'); rival = await as('seller1@bookstore.test');
-    const cat = (await new Client().get('/api/categories')).json.items.find((c) => c.name === 'Dark Whimsy').category_id;
+    const cat = (await new Client().get('/api/categories')).json.items.find((c) => c.name === 'Dark Fantasy').category_id;
     const bad = await owner.post('/api/seller/books', { title: 'T', isbn: 'bad', categoryId: cat, price: 499, stock: 3, authors: 'A' });
     assert.equal(bad.status, 400);
     const neg = await owner.post('/api/seller/books', { title: 'Free Book', isbn: '9781234567897', categoryId: cat, price: -5, stock: 3, authors: 'A' });
@@ -351,7 +351,7 @@ describe('seller and admin journey', () => {
     const a = (await admin.get('/api/admin/report')).json;
     assert.ok(a.totals.revenue_cents >= 54900);
     assert.equal(a.sellers[0].revenue_rank, 1); assert.equal(a.counts.pending_books, 1);
-    assert.ok(a.categories.some((c) => c.name === 'Enchanted Lands' && c.depth === 1));
+    assert.ok(a.categories.some((c) => c.name === 'Middle Grade' && c.depth === 1));
     assert.equal((await owner.get('/api/seller/report?from=2026-12-31&to=2026-01-01')).status, 400);
     assert.equal((await owner.get('/api/seller/report?from=abc')).status, 400);
   });
@@ -532,16 +532,16 @@ describe('features merged from the SE backlog', () => {
     assert.equal(made.status, 200);
     assert.equal((await admin.post('/api/admin/categories', { name: 'Poetry' })).status, 409, 'duplicate root name');
     assert.equal((await admin.patch(`/api/admin/categories/${made.json.categoryId}`, { name: 'Verse' })).status, 200);
-    const fiction = (await db.query("SELECT category_id FROM categories WHERE name='Portal Worlds'")).rows[0].category_id;
+    const fiction = (await db.query("SELECT category_id FROM categories WHERE name='Fantasy'")).rows[0].category_id;
     const del = await admin.del(`/api/admin/categories/${fiction}`);
     assert.equal(del.status, 409); assert.match(del.json.error, /sub-categories|books/);
     assert.equal((await admin.del(`/api/admin/categories/${made.json.categoryId}`)).status, 200);
   });
 
-  test('search also matches the category name ("wonderlands" finds the Wonderlands books)', async () => {
-    const r = (await new Client().get('/api/books?q=wonderlands')).json;
-    assert.ok(r.total >= 2, `expected the Wonderlands books, got ${r.total}`);
-    assert.ok(r.items.some((b) => b.category_name === 'Wonderlands'));
+  test('search also matches the category name ("portal fantasy" finds the Portal Fantasy books)', async () => {
+    const r = (await new Client().get('/api/books?q=portal%20fantasy')).json;
+    assert.ok(r.total >= 2, `expected the Portal Fantasy books, got ${r.total}`);
+    assert.ok(r.items.some((b) => b.category_name === 'Portal Fantasy'));
   });
 
   test('category and setting changes are written to the audit log', async () => {
@@ -707,5 +707,83 @@ describe('SE requirements closed in the merged app', () => {
     assert.equal(r.json.status, 'ok'); assert.equal(r.json.postgres, 'up');
     assert.ok(['up', 'down'].includes(r.json.mongo));
     assert.equal(r.headers.get('cache-control'), 'no-store');
+  });
+});
+
+describe('catalogue filters: every control, together and alone', () => {
+  const g = new Client();
+  const everything = async (extra = '') => {
+    const out = [];
+    for (let page = 1; ; page += 1) {
+      const r = (await g.get(`/api/books?limit=40&page=${page}${extra}`)).json;
+      out.push(...r.items);
+      if (page >= r.pages) return { items: out, total: r.total };
+    }
+  };
+
+  test('paging never repeats a book, whatever the sort', async () => {
+    for (const sort of ['newest', 'price_asc', 'price_desc', 'rating', 'title']) {
+      const seen = [];
+      for (let page = 1; page <= 6; page += 1) seen.push(...(await g.get(`/api/books?limit=10&page=${page}&sort=${sort}`)).json.items.map((b) => b.book_id));
+      assert.equal(new Set(seen).size, seen.length, `duplicates with sort=${sort}`);
+      assert.equal(seen.length, (await g.get('/api/books?limit=1')).json.total, `every book appears once with sort=${sort}`);
+    }
+  });
+
+  test('each sort orders the whole list correctly', async () => {
+    const byPrice = (await everything('&sort=price_asc')).items.map((b) => b.price_cents);
+    assert.deepEqual(byPrice, [...byPrice].sort((a, b) => a - b));
+    const byPriceDesc = (await everything('&sort=price_desc')).items.map((b) => b.price_cents);
+    assert.deepEqual(byPriceDesc, [...byPriceDesc].sort((a, b) => b - a));
+    const titles = (await everything('&sort=title')).items.map((b) => b.title.toLowerCase());
+    assert.deepEqual(titles, [...titles].sort());
+    const ratings = (await everything('&sort=rating')).items.map((b) => Number(b.avg_rating));
+    assert.deepEqual(ratings, [...ratings].sort((a, b) => b - a));
+    const newest = (await everything('&sort=newest')).items.map((b) => b.book_id);
+    assert.deepEqual(newest, [...newest].sort((a, b) => a - b), 'books added together keep their shelf order');
+  });
+
+  test('the number on every genre chip equals the books its list returns', async () => {
+    const cats = (await g.get('/api/categories')).json.items;
+    for (const c of cats) {
+      assert.equal(c.filtered_books, c.subtree_books, `${c.name}: with no filter the two counts agree`);
+      assert.equal((await g.get(`/api/books?limit=1&category=${c.category_id}`)).json.total, c.filtered_books, `${c.name}: chip count vs list`);
+    }
+  });
+
+  test('chip counts follow the other filters (price, language, rating, in stock, search)', async () => {
+    for (const extra of ['maxPrice=300', 'minPrice=300&maxPrice=399.5', 'inStock=1', 'minRating=3', 'language=English', 'q=magic', 'maxPrice=300&inStock=1&language=English']) {
+      const cats = (await g.get(`/api/categories?${extra}`)).json.items;
+      for (const c of cats) {
+        assert.equal((await g.get(`/api/books?limit=1&category=${c.category_id}&${extra}`)).json.total, c.filtered_books, `${c.name} with ${extra}`);
+      }
+      const roots = cats.filter((c) => c.parent_id === null).reduce((s, c) => s + c.filtered_books, 0);
+      assert.equal(roots, (await g.get(`/api/books?limit=1&${extra}`)).json.total, `the four genres add up to the whole result with ${extra}`);
+    }
+  });
+
+  test('combined filters give exactly the books that pass every condition', async () => {
+    const all = (await everything()).items;
+    const cat = (await g.get('/api/categories')).json.items.find((c) => c.name === 'Fantasy').category_id;
+    const inTree = new Set((await db.query('SELECT category_id FROM fn_category_tree($1)', [cat])).rows.map((r) => r.category_id));
+    const expected = all.filter((b) => inTree.has(b.category_id) && b.price_cents >= 25000 && b.price_cents <= 35000 && b.stock > 0).map((b) => b.book_id).sort((a, b) => a - b);
+    const got = (await everything(`&category=${cat}&minPrice=250&maxPrice=350&inStock=1`)).items.map((b) => b.book_id).sort((a, b) => a - b);
+    assert.deepEqual(got, expected);
+    assert.ok(expected.length > 0);
+  });
+
+  test('price boxes accept decimals; a reversed range is simply empty; junk is refused', async () => {
+    assert.equal((await g.get('/api/books?minPrice=249.00&maxPrice=249.00&limit=40')).status, 200);
+    assert.ok((await g.get('/api/books?minPrice=249&maxPrice=249&limit=40')).json.items.every((b) => b.price_cents === 24900));
+    assert.equal((await g.get('/api/books?minPrice=500&maxPrice=100')).json.total, 0);
+    assert.equal((await g.get('/api/books?minPrice=abc')).status, 400);
+    assert.equal((await g.get('/api/books?minPrice=-5')).status, 400);
+    assert.equal((await g.get('/api/categories?minPrice=abc')).status, 400);
+  });
+
+  test('a filter that matches nothing returns an empty list with a total of 0', async () => {
+    const r = (await g.get('/api/books?q=zzzzqqqq&limit=40')).json;
+    assert.equal(r.total, 0); assert.deepEqual(r.items, []);
+    assert.equal((await g.get('/api/books?language=Klingon')).json.total, 0);
   });
 });

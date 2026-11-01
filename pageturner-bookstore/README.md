@@ -1,4 +1,4 @@
-# 📖 PageTurner - Online Bookstore (DBMS + Software Engineering, one app)
+# PageTurner - Online Bookstore (DBMS + Software Engineering, one app)
 
 **Anagha N · PES1UG24CS058 · PES University**
 DBMS *Experiential Learning Level 3 mini-project* **and** the database/application layer for the Software Engineering
@@ -6,29 +6,29 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 
 | | |
 |---|---|
-| 🗄 **SQL** | PostgreSQL 16 - 20 tables, constraints, procedures, triggers, views, recursive CTEs, window functions, RLS |
-| 🍃 **NoSQL** | MongoDB - reviews (CRUD + aggregation + validators) and view events (TTL index) |
-| 🖥 **App** | Next.js 15 (App Router): 46 API route files (60 operations) + 17 pages |
-| 🔐 **Security** | Roles enforced **inside PostgreSQL** (GRANT + Row Level Security + SECURITY DEFINER routines) |
-| ✅ **Tests** | 115 automated tests (unit, database, NoSQL logic, real HTTP API); lint clean; 85.7 % line coverage of `src/lib` |
+| **SQL** | PostgreSQL 16 - 20 tables, constraints, procedures, triggers, views, recursive CTEs, window functions, RLS |
+| **NoSQL** | MongoDB - reviews (CRUD + aggregation + validators) and view events (TTL index) |
+| **App** | Next.js 15 (App Router): 46 API route files (60 operations) + 17 pages |
+| **Security** | Roles enforced **inside PostgreSQL** (GRANT + Row Level Security + SECURITY DEFINER routines) |
+| **Tests** | 129 automated tests (unit, database, NoSQL logic, real HTTP API); lint clean; 85.7 % line coverage of `src/lib` |
 
 ---
 
-## 🚀 Run it (5 minutes)
+## Run it (5 minutes)
 
 **You need:** Node 20+, PostgreSQL 15+ (16 recommended) and, for reviews/trending, MongoDB 6+.
 
 ```bash
 npm install
 cp .env.example .env            # then edit DATABASE_ADMIN_URL if your postgres superuser needs a password
-npm run db:reset                # creates DB, roles, tables, rules, categories, 53 fantasy books (51 approved, 2 for the moderation demo), 5 demo users (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
+npm run db:reset                # creates DB, roles, tables, rules, categories, 53 fantasy books (51 approved, 2 for the moderation demo), 8 demo users (1 admin, 2 sellers, 5 customers; the demo orders, carts and wishlists are spread across the customers) (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
 npm run db:seed                 # optional: 16 demo orders spread over 2 weeks, reviews if Mongo is up
 npm run dev                     # http://localhost:3000
 ```
 
 | Demo login (password `Passw0rd!`) | Role |
 |---|---|
-| `customer1@bookstore.test`, `customer2@bookstore.test` | customer |
+| `customer1@bookstore.test` to `customer5@bookstore.test` (Karan Shah, Meera Iyer, Nikhil Rao, Sana Qureshi, Arjun Pillai) | customer |
 | `seller1@bookstore.test`, `seller2@bookstore.test` | seller |
 | `admin@bookstore.test` | admin |
 
@@ -38,7 +38,7 @@ Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `np
 
 ---
 
-## 🧭 Rubric → where to find it (50 marks)
+## Rubric → where to find it (50 marks)
 
 | # | Criterion | Marks | Where |
 |---|---|---|---|
@@ -57,7 +57,7 @@ Useful extras: `npm run nosql:demo` (narrated MongoDB CRUD) · `npm test` · `np
 | 13 | Documentation + Git/GitHub | 2 | this README, `docs/`, commit history, CI in `.github/workflows` |
 | 14 | Originality / viva | 4 | [`docs/viva-guide.html`](docs/viva-guide.html) |
 
-## 🧪 Software Engineering deliverables (Phase 1 and 2 documents)
+## Software Engineering deliverables (Phase 1 and 2 documents)
 
 | Expected | Where |
 |---|---|
@@ -85,7 +85,7 @@ Payment and e-mail run through test adapters (`src/lib/gateway.js`, `src/lib/mai
 
 ---
 
-## 🧩 How the two subjects became one app
+## How the two subjects became one app
 
 The Software Engineering project (MERN, team of four) defines **what** the bookstore must do (30 functional and 15
 non-functional requirements). This project is the **database-centric implementation** of the same product, extended with
@@ -96,7 +96,7 @@ Browser ── Next.js pages ── API routes ── PostgreSQL  (transactions,
                                      └─── MongoDB     (reviews, view events)
 ```
 
-## 📂 Layout
+## Layout
 
 ```
 db/postgres/      00_roles … 08_features.sql (schema, routines, triggers, views, security, data)
@@ -108,12 +108,12 @@ tests/            database, nosql, api suites
 docs/             ER diagram, schema, RBAC, API, testing, SE traceability, viva guide
 ```
 
-## 🛡 Security in one glance
+## Security in one glance
 bcrypt hashes · httpOnly SameSite cookie · account lockout (5 failures / 15 min) · CSRF guard · parameterised SQL only ·
 no SQL text ever sent to the browser · security headers · password-reset tokens stored hashed and single-use · passwords and
 card data are never logged (payments are simulated).
 
-## ⚠️ Honest limits
+## Honest limits
 * Book covers and the bookshelf decorations are **not finished**: books without a `cover_url` show a plain "cover pending" tile and the shelf wood is flat colour. Real, licensed assets are tracked in [docs/assets.md](docs/assets.md).
 * Payments and e-mail are **simulated** (no gateway, no SMTP). Reset links are always printed on the server console (the terminal running the app). They are also shown on the page when you run `npm run dev`, never under `npm start`.
 * MongoDB features were unit-tested against an in-memory engine in the development sandbox; run `npm run nosql:demo` and the full `npm test` with a real `mongod` to see them live (CI does this).

@@ -4,10 +4,9 @@
 // and for the direct address /books/<id>. All data and actions use the existing book, review, cart and wishlist APIs.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useFetch, post, patch, del, dateOnly, money } from '@/lib/client.js';
 import { useApp } from '@/components/Providers.js';
-import { BookCover, Empty, ErrorBox, Loading, Status, StarPicker, Stars } from '@/components/ui.js';
+import { BookCover, ErrorBox, Loading, Status, StarPicker, Stars } from '@/components/ui.js';
 
 function ReviewForm({ bookId, mine, onDone }) {
   const { toast } = useApp();
@@ -40,14 +39,13 @@ function ReviewForm({ bookId, mine, onDone }) {
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export default function BookView({ id, modal = false }) {
-  const router = useRouter();
+export default function BookView({ id, modal = false, preview = null, onClose, onDetails }) {
   const { user, toast, setCartCount } = useApp();
   const [qty, setQty] = useState(1);
   const [sort, setSort] = useState('newest');
   const [editing, setEditing] = useState(false);
-  const [flip, setFlip] = useState(false);
-  useEffect(() => { setFlip(!reduced()); }, []);
+  // 'swing' = the cover is opening (pop-up only), 'open' = the two pages are showing and the content fades in
+  const [phase, setPhase] = useState(() => (modal && !reduced() ? 'swing' : 'open'));
   const book = useFetch(`/api/books/${id}`);
   const rev = useFetch(`/api/books/${id}/reviews?sort=${sort}`);
   const b = book.data?.book;
@@ -55,7 +53,7 @@ export default function BookView({ id, modal = false }) {
   const saved = wish.data?.items.some((w) => String(w.book_id) === String(id));
   const dialog = useRef(null);
 
-  const close = useCallback(() => router.back(), [router]);
+  const close = useCallback(() => onClose?.(), [onClose]);
 
   // pop-up behaviour: Escape closes, focus moves in and returns to the book that was tapped, the page behind stays put
   useEffect(() => {
@@ -83,10 +81,10 @@ export default function BookView({ id, modal = false }) {
 
   // the opening animation is decoration only: it can never stay in the way
   useEffect(() => {
-    if (!flip) return undefined;
-    const t = setTimeout(() => setFlip(false), 1400);
+    if (phase !== 'swing') return undefined;
+    const t = setTimeout(() => setPhase('open'), 1700);
     return () => clearTimeout(t);
-  }, [flip]);
+  }, [phase]);
 
   async function toggleWish() {
     try {
@@ -112,21 +110,33 @@ export default function BookView({ id, modal = false }) {
   const r = rev.data;
   const maxBar = r ? Math.max(1, ...Object.values(r.summary.histogram)) : 1;
 
+  const lidBook = b ?? preview;
+  const shown = phase === 'open';
   const sheet = (
-    <div className={`bk-book ${flip ? 'opening' : ''}`}>
-      {flip && b && (
-        <div className="bk-lid" aria-hidden="true" onAnimationEnd={() => setFlip(false)}>
-          <BookCover title={b.title} authors={b.authors} id={b.book_id} src={b.cover_url} priority />
+    <div className={`bk-book ${modal ? 'stage' : ''} phase-${phase}`}>
+      {phase === 'swing' && lidBook && (
+        <div className="bk-lid" aria-hidden="true" onAnimationEnd={(e) => { if (e.target === e.currentTarget) setPhase('open'); }}>
+          <div className="face front"><BookCover title={lidBook.title} authors={lidBook.authors} id={lidBook.book_id} src={lidBook.cover_url} priority /></div>
+          <div className="face back" />
         </div>
       )}
-      {book.loading && <Loading label="Opening the book" />}
+      {phase === 'swing' && !lidBook && <span className="sr-only" role="status">Opening the book</span>}
       {book.error && <div className="bk-pad"><ErrorBox error={book.error} /><Link href="/">Back to the shelves</Link></div>}
-      {b && (
+      {modal && !book.error && (!b || !shown) && (
+        <div className="bk-spread bk-skel" aria-hidden={!shown}>
+          <i className="leaf l" /><i className="leaf r" />
+          {shown && <div className="bk-content"><div className="sk sk-title" /><div className="sk" /><div className="sk" /><div className="sk short" /></div>}
+        </div>
+      )}
+      {!modal && book.loading && <Loading label="Opening the book" />}
+      {b && shown && (
         <div className="bk-spread">
+          <i className="leaf l" /><i className="leaf r" />
+          <div className="bk-content">
           <header className="bk-head">
             <div className="bk-cover"><BookCover title={b.title} authors={b.authors} id={b.book_id} src={b.cover_url} size="large" priority /></div>
             <div className="bk-titles">
-              <p className="small crumbs"><Link href={`/?category=${b.category_id}`}>{b.category_name}</Link></p>
+              <p className="small crumbs">{modal ? b.category_name : <Link href={`/?category=${b.category_id}`}>{b.category_name}</Link>}</p>
               <h1 id="bk-title">{b.title}</h1>
               <p className="by">by {b.authors}</p>
               <div className="row" style={{ gap: 8 }}><Stars value={b.avg_rating} size="1.1rem" /><span>{Number(b.avg_rating).toFixed(1)}</span><span className="muted small">({b.review_count} reviews)</span></div>
@@ -158,6 +168,7 @@ export default function BookView({ id, modal = false }) {
             )}
             {!user && <p><Link href={`/login?next=/books/${id}`} className="btn amber block">Sign in to buy</Link></p>}
             {user && user.role !== 'customer' && <p className="muted small">Signed in as {user.role}. Only customers can buy.</p>}
+            {modal && <Link className="btn secondary block details-link" href={`/books/${id}`} onClick={(e) => { e.preventDefault(); onDetails?.(); }}>See more details</Link>}
             <p className="hint">Free shipping on orders above ₹499.</p>
           </section>
 
@@ -170,12 +181,14 @@ export default function BookView({ id, modal = false }) {
 
           <section className="bk-reviews" aria-labelledby="rv">
             <div className="row between"><h2 id="rv">Reader reviews</h2>
-              <select aria-label="Sort reviews" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
-                <option value="newest">Newest</option><option value="helpful">Most helpful</option>
-              </select>
+              {!rev.error && (
+                <select aria-label="Sort reviews" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+                  <option value="newest">Newest</option><option value="helpful">Most helpful</option>
+                </select>
+              )}
             </div>
             {rev.loading && !r && <Loading />}
-            {rev.error && <div className="alert warn">Reviews are temporarily unavailable (the review database could not be reached). Everything else still works.</div>}
+            {rev.error && <p className="muted reviews-down">Reviews can&apos;t be loaded right now.</p>}
             {r && (
               <>
                 <div className="rating-sum">
@@ -186,7 +199,7 @@ export default function BookView({ id, modal = false }) {
                 </div>
                 {r.canReview && !editing && <ReviewForm bookId={id} onDone={() => { rev.reload(); book.reload(); }} />}
                 {user?.role === 'customer' && !r.canReview && !r.mine && <p className="muted small">Only customers who bought this book can review it.</p>}
-                {r.items.length === 0 && <Empty icon="" title="No reviews yet" />}
+                {r.items.length === 0 && <p className="muted">No reviews yet. Be the first to review this book.</p>}
                 {r.items.map((x) => (
                   editing && x.mine ? <ReviewForm key={x.id} bookId={id} mine={x} onDone={() => { setEditing(false); rev.reload(); book.reload(); }} /> : (
                     <article key={x.id} className={`review ${x.mine ? 'mine' : ''}`}>
@@ -194,7 +207,7 @@ export default function BookView({ id, modal = false }) {
                       <div className="meta">{x.userName} · {dateOnly(x.createdAt)}{x.updatedAt ? ' (edited)' : ''} · <span className="badge green">Verified purchase</span></div>
                       <p style={{ margin: '8px 0' }}>{x.body}</p>
                       <div className="actions">
-                        {user && !x.mine && <button className="btn secondary sm" onClick={() => helpful(x)}>{x.votedHelpful ? '✓ ' : ''}Helpful ({x.helpfulCount})</button>}
+                        {user && !x.mine && <button className="btn secondary sm" onClick={() => helpful(x)}>{x.votedHelpful ? 'Marked helpful' : 'Helpful'} ({x.helpfulCount})</button>}
                         {!user && <span className="muted small">{x.helpfulCount} found this helpful</span>}
                         {x.mine && <button className="btn secondary sm" onClick={() => setEditing(true)}>Edit</button>}
                         {(x.mine || user?.role === 'admin') && <button className="btn danger secondary sm" onClick={() => remove(x)}>Delete</button>}
@@ -205,6 +218,7 @@ export default function BookView({ id, modal = false }) {
               </>
             )}
           </section>
+          </div>
         </div>
       )}
     </div>

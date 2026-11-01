@@ -20,7 +20,7 @@ function Inner() {
       <div className="card">
         <h1>E-mail verification</h1>
         {state.status === 'working' && <p className="muted">Checking your link…</p>}
-        {state.status === 'ok' && <div className="alert success">✅ {state.message}</div>}
+        {state.status === 'ok' && <div className="alert success">{state.message}</div>}
         {state.status === 'error' && <div className="alert error" role="alert">{state.message}</div>}
         <p className="small" style={{ marginTop: 14 }}><Link href="/">← Back to the shop</Link></p>
       </div>

@@ -62,7 +62,7 @@ export default function Checkout() {
             {list?.map((a) => (
               <label key={a.address_id} className="card tight" style={{ display: 'flex', gap: 12, cursor: 'pointer', borderColor: a.address_id === addressId ? 'var(--forest)' : undefined, background: a.address_id === addressId ? 'var(--forest-tint)' : undefined, marginBottom: 10, fontWeight: 400 }}>
                 <input type="radio" name="addr" checked={a.address_id === addressId} onChange={() => setAddressId(a.address_id)} />
-                <span><strong>{a.full_name}</strong> <span className="badge grey">{a.label}</span><br />{a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city}, {a.state} {a.postal_code}<br /><span className="muted small">📞 {a.phone}</span></span>
+                <span><strong>{a.full_name}</strong> <span className="badge grey">{a.label}</span><br />{a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city}, {a.state} {a.postal_code}<br /><span className="muted small">Phone: {a.phone}</span></span>
               </label>
             ))}
             {!adding && <button className="btn secondary sm" onClick={() => setAdding(true)}>+ Add a new address</button>}

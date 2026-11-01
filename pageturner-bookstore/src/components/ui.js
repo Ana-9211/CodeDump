@@ -52,8 +52,8 @@ export const Status = ({ value }) => <span className={`badge ${STATUS_COLORS[val
 
 export const Loading = ({ label = 'Loading' }) => <div className="center" role="status"><span className="spinner" /><span className="sr-only">{label}</span></div>;
 export const ErrorBox = ({ error }) => (error ? <div className="alert error" role="alert">{error.message ?? String(error)}</div> : null);
-export const Empty = ({ icon = '📭', title, children }) => (
-  <div className="empty"><div className="big">{icon}</div><h3>{title}</h3>{children}</div>
+export const Empty = ({ title, children }) => (
+  <div className="empty"><h3>{title}</h3>{children}</div>
 );
 
 export function Pagination({ page, pages, onPage }) {

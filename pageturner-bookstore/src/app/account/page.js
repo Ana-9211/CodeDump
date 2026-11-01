@@ -77,7 +77,7 @@ function BecomeSeller({ application, reload }) {
   const pending = application?.status === 'pending';
   return (
     <div className="card" style={{ background: 'var(--amber-tint)' }}>
-      <h2>🏪 Want to sell books?</h2>
+      <h2>Want to sell books?</h2>
       {application && <div className="alert info">Your last application for “{application.store_name}” is <Status value={application.status} />{application.review_note ? ` — ${application.review_note}` : ''}.</div>}
       {!pending && (
         <form onSubmit={apply}><ErrorBox error={err} />

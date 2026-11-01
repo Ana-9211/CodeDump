@@ -8,23 +8,23 @@
 
 | Group | Table | Primary key | Foreign keys → | Notes |
 |---|---|---|---|---|
-| 🔐 Identity | `roles` | `role_id` | | `customer`, `seller`, `admin` |
+| Identity | `roles` | `role_id` | | `customer`, `seller`, `admin` |
 | | `users` | `user_id` | `role_id → roles` | `email` CITEXT UNIQUE, bcrypt hash, lockout columns |
 | | `seller_profiles` | `user_id` | `user_id → users` | **1:1** extension of users |
 | | `seller_applications` | `application_id` | `user_id`, `decided_by → users` | partial UNIQUE: one *pending* per user |
 | | `password_resets` | `token_hash` | `user_id → users` | only the SHA-256 of the token is stored |
 | | `addresses` | `address_id` | `user_id → users` | max 5 per user (trigger), one default (partial unique index) |
-| 📚 Catalogue | `categories` | `category_id` | `parent_id → categories` | **self-reference** → tree |
+| Catalogue | `categories` | `category_id` | `parent_id → categories` | **self-reference** → tree |
 | | `authors` | `author_id` | | |
 | | `books` | `book_id` | `seller_id → users`, `category_id → categories` | generated `search_vector` + GIN index |
 | | `book_authors` | `(book_id, author_id)` | both | **M:N** between books and authors |
-| 🛒 Shopping | `cart_items` | `(user_id, book_id)` | both | **M:N** between users and books, quantity 1-10 |
+| Shopping | `cart_items` | `(user_id, book_id)` | both | **M:N** between users and books, quantity 1-10 |
 | | `wishlist_items` | `(user_id, book_id)` | both | **M:N** |
-| 🧾 Orders | `orders` | `order_id` | `user_id → users` | address *copied in* (snapshot) |
+| Orders | `orders` | `order_id` | `user_id → users` | address *copied in* (snapshot) |
 | | `order_items` | `order_item_id` | `order_id`, `book_id`, `seller_id` | title and unit price *copied in* |
 | | `payments` | `payment_id` | `order_id → orders` (UNIQUE → 1:1) | simulated gateway |
 | | `stock_movements` | `movement_id` | `book_id`, `order_item_id` | ledger of every stock change |
-| 🛡 System | `audit_log` | `audit_id` | | JSONB before/after, written by triggers |
+| System | `audit_log` | `audit_id` | | JSONB before/after, written by triggers |
 | | `notifications` | `notification_id` | `user_id → users` | in-app + simulated e-mail outbox |
 | | `app_settings` | `setting_key` | | tax %, shipping fee, lockout rules |
 
