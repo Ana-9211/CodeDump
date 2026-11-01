@@ -5,6 +5,12 @@ import { catalogFilters } from '@/lib/catalogFilters.js';
 // Whole category tree from the recursive CTE function fn_category_tree().
 // With search/filter parameters (the same ones GET /api/books takes) each node also gets `filtered_books`: how many
 // books of its whole sub-tree match those filters, so the number on a genre chip equals the list it opens.
+// @query q (string): Search text (title, author, ISBN, category name).
+// @query inStock (string): Send 1 to count only books that are in stock.
+// @query language (string): Only books in this language.
+// @query minPrice (number): Minimum price in rupees (decimals allowed).
+// @query maxPrice (number): Maximum price in rupees (decimals allowed).
+// @query minRating (integer): Minimum average rating, 1 to 5.
 export const GET = api(async ({ session, query }) => {
   const params = [];
   const bind = (v) => { params.push(v); return `$${params.length}`; };

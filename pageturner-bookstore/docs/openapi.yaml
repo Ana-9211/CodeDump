@@ -354,7 +354,14 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
   /api/categories:
     get:
-      summary: "Whole category tree from the recursive CTE function fn_category_tree()"
+      summary: "Whole category tree from the recursive CTE function fn_category_tree(). With search/filter parameters (the same ones GET /api/books takes) each node also gets `filtered_books`: how many books of its whole sub-tree match those filters, so the number on a genre chip equals the list it opens."
+      parameters:
+        - { name: q, in: query, required: false, description: "Search text (title, author, ISBN, category name).", schema: { type: string } }
+        - { name: inStock, in: query, required: false, description: "Send 1 to count only books that are in stock.", schema: { type: string } }
+        - { name: language, in: query, required: false, description: "Only books in this language.", schema: { type: string } }
+        - { name: minPrice, in: query, required: false, description: "Minimum price in rupees (decimals allowed).", schema: { type: number } }
+        - { name: maxPrice, in: query, required: false, description: "Maximum price in rupees (decimals allowed).", schema: { type: number } }
+        - { name: minRating, in: query, required: false, description: "Minimum average rating, 1 to 5.", schema: { type: integer } }
       description: "Open to everyone (guests included); data is still filtered by row level security."
       responses:
         '200': { description: OK }
