@@ -90,7 +90,8 @@ async function main() {
   }
   say('\nDone. Demo logins (password for all: ' + DEMO_PASSWORD + '):');
   say('  admin@bookstore.test  seller1@bookstore.test  seller2@bookstore.test');
-  say('  customer1@bookstore.test  customer2@bookstore.test');
+  say('  customer1@bookstore.test  customer2@bookstore.test  customer3@bookstore.test');
+  say('  customer4@bookstore.test  customer5@bookstore.test');
 }
 
 async function seedDemoUsers(db) {
@@ -101,6 +102,9 @@ async function seedDemoUsers(db) {
     ['Divya Rao',   'seller2@bookstore.test',   'seller',   'The Lantern Shelf'],
     ['Karan Shah',  'customer1@bookstore.test', 'customer', null],
     ['Meera Iyer',  'customer2@bookstore.test', 'customer', null],
+    ['Nikhil Rao',  'customer3@bookstore.test', 'customer', null],
+    ['Sana Qureshi', 'customer4@bookstore.test', 'customer', null],
+    ['Arjun Pillai', 'customer5@bookstore.test', 'customer', null],
   ];
   for (const [name, email, role, store] of users) {
     const { rows } = await db.query(
@@ -112,8 +116,8 @@ async function seedDemoUsers(db) {
   await db.query(`
     INSERT INTO addresses (user_id, label, full_name, line1, city, state, postal_code, phone, is_default)
     SELECT user_id, 'Home', name, '12 MG Road', 'Bengaluru', 'Karnataka', '560001', '9876543210', true
-      FROM users WHERE email IN ('customer1@bookstore.test', 'customer2@bookstore.test')`);
-  say('Created 5 demo users (1 admin, 2 sellers, 2 customers)');
+      FROM users WHERE email LIKE 'customer%@bookstore.test'`);
+  say('Created 8 demo users (1 admin, 2 sellers, 5 customers)');
 }
 
 main().catch((err) => {

@@ -21,14 +21,14 @@ DBMS *Experiential Learning Level 3 mini-project* **and** the database/applicati
 ```bash
 npm install
 cp .env.example .env            # then edit DATABASE_ADMIN_URL if your postgres superuser needs a password
-npm run db:reset                # creates DB, roles, tables, rules, categories, 53 fantasy books (51 approved, 2 for the moderation demo), 5 demo users (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
+npm run db:reset                # creates DB, roles, tables, rules, categories, 53 fantasy books (51 approved, 2 for the moderation demo), 8 demo users (1 admin, 2 sellers, 5 customers; the demo orders, carts and wishlists are spread across the customers) (+ Mongo collections if running; an existing review/view collection is cleared because ids restart)
 npm run db:seed                 # optional: 16 demo orders spread over 2 weeks, reviews if Mongo is up
 npm run dev                     # http://localhost:3000
 ```
 
 | Demo login (password `Passw0rd!`) | Role |
 |---|---|
-| `customer1@bookstore.test`, `customer2@bookstore.test` | customer |
+| `customer1@bookstore.test` to `customer5@bookstore.test` (Karan Shah, Meera Iyer, Nikhil Rao, Sana Qureshi, Arjun Pillai) | customer |
 | `seller1@bookstore.test`, `seller2@bookstore.test` | seller |
 | `admin@bookstore.test` | admin |
 
