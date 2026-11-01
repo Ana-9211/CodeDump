@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFetch, post, get, money } from '@/lib/client.js';
 import { useApp } from '@/components/Providers.js';
 import { BookCover, Stars } from '@/components/ui.js';
+import BookView from '@/components/BookView.js';
 
 const BATCH = 12;
 
@@ -17,7 +18,10 @@ const useCols = () => useSyncExternalStore(subscribeCols, colsNow, () => 2);
 
 const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
 
-function Row({ books, index, cols, onAdd, canBuy, firstRow }) {
+// a plain click opens the book in place; modified clicks (new tab, new window) keep the normal link behaviour
+const plainClick = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
+function Row({ books, index, cols, onAdd, onOpen, canBuy, firstRow }) {
   const pad = cols - books.length;
   return (
     <section className="shelf-row" aria-label={`Shelf ${index + 1}`} style={{ '--cols': cols }}>
@@ -25,7 +29,8 @@ function Row({ books, index, cols, onAdd, canBuy, firstRow }) {
       <ul className="shelf-books">
         {books.map((b, i) => (
           <li key={b.book_id} className="slot" style={{ '--tilt': `${((b.book_id * 7) % 5 - 2) * 0.35}deg` }}>
-            <Link href={`/books/${b.book_id}`} prefetch={false} className="spine" tabIndex={-1} aria-hidden="true">
+            <Link href={`/books/${b.book_id}`} prefetch={false} className="spine" aria-label={`Open ${b.title}`}
+              onClick={(e) => { if (plainClick(e)) { e.preventDefault(); onOpen(b, e.currentTarget); } }}>
               <BookCover title={b.title} authors={b.authors} id={b.book_id} src={b.cover_url} priority={firstRow && i < 2} />
             </Link>
           </li>
@@ -36,7 +41,8 @@ function Row({ books, index, cols, onAdd, canBuy, firstRow }) {
       <ul className="shelf-tags">
         {books.map((b) => (
           <li key={b.book_id} className="tag">
-            <Link href={`/books/${b.book_id}`} prefetch={false} className="t-title">{b.title}</Link>
+            <Link href={`/books/${b.book_id}`} prefetch={false} className="t-title"
+              onClick={(e) => { if (plainClick(e)) { e.preventDefault(); onOpen(b, e.currentTarget); } }}>{b.title}</Link>
             <span className="t-author">{b.authors}</span>
             {b.review_count > 0 && <span className="t-stars"><Stars value={b.avg_rating} size=".75rem" /></span>}
             <span className="t-meta">
@@ -98,6 +104,27 @@ export default function Shelf() {
     if (language) p.set('language', language);
     return p.toString();
   }, [q, category, sort, inStock, minPrice, maxPrice, minRating, language]);
+
+  // the open book: an overlay on this page. It adds one history entry (same address) so Back closes it.
+  const [openBook, setOpenBook] = useState(null);
+  const origin = useRef(null);
+  const pushed = useRef(false);
+  const openIn = useCallback((b, el) => {
+    origin.current = el;
+    window.history.pushState(window.history.state, '', window.location.href);
+    pushed.current = true;
+    setOpenBook(b);
+  }, []);
+  useEffect(() => {
+    const onPop = () => { pushed.current = false; setOpenBook(null); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const closeBook = useCallback(() => { if (pushed.current) window.history.back(); else setOpenBook(null); }, []);
+  const seeDetails = useCallback((id) => { pushed.current = false; router.replace(`/books/${id}`); }, [router]);
+  useEffect(() => {
+    if (openBook === null && origin.current) { const el = origin.current; origin.current = null; if (document.contains(el)) el.focus({ preventScroll: true }); }
+  }, [openBook]);
 
   const [state, setState] = useState({ items: [], page: 0, pages: 1, total: null, loading: true, error: null });
   const live = useRef({ key: '', busy: false });
@@ -222,7 +249,7 @@ export default function Shelf() {
             {state.error.message} <button className="btn sm" onClick={() => loadNext(filterKey, state.page + 1, state.page === 0)}>Try again</button>
           </div>
         )}
-        {rows.map((r, i) => <Row key={r[0].book_id} books={r} index={i} cols={cols} onAdd={add} canBuy={canBuy} firstRow={i === 0} />)}
+        {rows.map((r, i) => <Row key={r[0].book_id} books={r} index={i} cols={cols} onAdd={add} onOpen={openIn} canBuy={canBuy} firstRow={i === 0} />)}
         {state.loading && state.page === 0 && <><RowSkeleton cols={cols} /><RowSkeleton cols={cols} /></>}
         {state.loading && state.page > 0 && <RowSkeleton cols={cols} />}
         {!state.loading && !state.error && state.total === 0 && (
@@ -239,6 +266,7 @@ export default function Shelf() {
         )}
         <div className="base" aria-hidden="true" />
       </div>
+      {openBook && <BookView key={openBook.book_id} id={openBook.book_id} preview={openBook} modal onClose={closeBook} onDetails={() => seeDetails(openBook.book_id)} />}
     </div>
   );
 }
