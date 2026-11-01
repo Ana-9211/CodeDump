@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useFetch, post, patch, del, dateOnly, money } from '@/lib/client.js';
 import { useApp } from '@/components/Providers.js';
-import { BookCover, Empty, ErrorBox, Loading, Status, StarPicker, Stars } from '@/components/ui.js';
+import { BookCover, ErrorBox, Loading, Status, StarPicker, Stars } from '@/components/ui.js';
 
 function ReviewForm({ bookId, mine, onDone }) {
   const { toast } = useApp();
@@ -181,12 +181,14 @@ export default function BookView({ id, modal = false, preview = null, onClose, o
 
           <section className="bk-reviews" aria-labelledby="rv">
             <div className="row between"><h2 id="rv">Reader reviews</h2>
-              <select aria-label="Sort reviews" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
-                <option value="newest">Newest</option><option value="helpful">Most helpful</option>
-              </select>
+              {!rev.error && (
+                <select aria-label="Sort reviews" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+                  <option value="newest">Newest</option><option value="helpful">Most helpful</option>
+                </select>
+              )}
             </div>
             {rev.loading && !r && <Loading />}
-            {rev.error && <div className="alert warn">Reviews are temporarily unavailable (the review database could not be reached). Everything else still works.</div>}
+            {rev.error && <p className="muted reviews-down">Reviews can&apos;t be loaded right now.</p>}
             {r && (
               <>
                 <div className="rating-sum">
@@ -197,7 +199,7 @@ export default function BookView({ id, modal = false, preview = null, onClose, o
                 </div>
                 {r.canReview && !editing && <ReviewForm bookId={id} onDone={() => { rev.reload(); book.reload(); }} />}
                 {user?.role === 'customer' && !r.canReview && !r.mine && <p className="muted small">Only customers who bought this book can review it.</p>}
-                {r.items.length === 0 && <Empty icon="" title="No reviews yet" />}
+                {r.items.length === 0 && <p className="muted">No reviews yet. Be the first to review this book.</p>}
                 {r.items.map((x) => (
                   editing && x.mine ? <ReviewForm key={x.id} bookId={id} mine={x} onDone={() => { setEditing(false); rev.reload(); book.reload(); }} /> : (
                     <article key={x.id} className={`review ${x.mine ? 'mine' : ''}`}>
