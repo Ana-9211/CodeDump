@@ -18,6 +18,7 @@ const nextConfig = {
   // native/Node-only drivers must not be bundled by webpack
   serverExternalPackages: ['pg', 'mongodb', 'bcryptjs', 'jsonwebtoken'],
   poweredByHeader: false,
+  devIndicators: false, // the floating dev-mode badge is not part of the app and shows up in screenshots
   async headers() {
     return [{
       source: '/(.*)',
